@@ -1,0 +1,172 @@
+---
+title: "Geodata Assignment"
+format: 
+  html:
+   toc: true
+   toc-depth: 2
+   toc-title: Contents
+theme: minty
+editor: visual
+---
+
+## Introduction
+
+The two species I have chosen to look at are the Fisher (*Pekania pennanti*) and the North American Porcupine (*Erethizon dorsatum*). Fishers and Porcupines have a predator-prey relationship, therefore I expect their ranges to have limited overlap.
+
+## Set Up
+
+#### Loading packages:
+
+```{r Packages Used}
+#| output: false
+library(here)
+library(dismo)
+library(rworldmap)
+library(sf)
+library(geodata)
+library(tibble)
+```
+
+#### Creating the Datasets:
+
+```{r Creating a file structure}
+#| include: false
+sapply(c("data/raw", "data/processed"), function(dir) {
+    dir_path <- here(dir)
+    if (!dir.exists(dir_path)) dir.create(dir_path, recursive = TRUE)
+})
+#This code creates a file structure to allow the datasets created in this project to be stored in an organised fashion that makes them easy to find in the future.
+```
+
+To create the datasets first the the species data is downloaded from GBIF. This includes a lot of information not required for species distribution modelling. Therefore just the latitude and longitude data is extracted from the large dataset using the coordinate extraction function (see below).
+
+```{r Coordinate Extraction Function}
+#| code-fold: true
+#| code-summary: "Coordinate extraction function"
+extract_coordinates <- function(speciesdata.gbif) {
+    cbind(speciesdata.gbif$lon, speciesdata.gbif$lat) %>% 
+    na.omit() %>% 
+    data.frame()
+}
+```
+
+Example code for creating coordinate dataframe:
+
+```{r Species 1 coordinate data}
+
+#Downloading data from GBIF
+species1.gbif_file <- here("data", "raw", "species1.gbif.rds")
+if (!file.exists(species1.gbif_file)) {
+    species1.gbif <- gbif("pekania", "pennanti", geo = TRUE) #Insert the genus and species name of your chosen species in this line. 
+    saveRDS(species1.gbif, species1.gbif_file)
+} else {
+    species1.gbif <- readRDS(species1.gbif_file)
+}
+
+#Creating dataframe of coordinates
+species1_coords <- extract_coordinates(species1.gbif)
+colnames(species1_coords) <- c("lon", "lat")
+```
+
+```{r Species 2 coordinate data}
+#| echo: false
+#Repeating dataset creation for the second species using the same code as above.
+species2.gbif_file <- here("data", "raw", "species2.gbif.rds")
+if (!file.exists(species2.gbif_file)) {
+    species2.gbif <- gbif("erethizon", "dorsatus", geo = TRUE) 
+    #The data for this species is held under the old scientific name Erethizon dorsatUS.
+    saveRDS(species2.gbif, species2.gbif_file)
+} else {
+    species2.gbif <- readRDS(species2.gbif_file)
+}
+
+species2_coords <- extract_coordinates(species2.gbif)
+colnames(species2_coords) <- c("lon", "lat")
+
+```
+
+You also need to ensure that the coordinates in the species datasets **only** include points on continental landmasses. The ocean coordinates were taken from the natural earth dataset found here: <https://naturalearth.s3.amazonaws.com/110m_physical/ne_110m_ocean.zip>.
+
+```{r Downloading and Reading in Ocean Data}
+#| echo: false
+
+#Downloading Ocean data
+ocean_data_dir <- here("data", "raw", "ocean")
+if (!dir.exists(ocean_data_dir)) dir.create(ocean_data_dir)
+URL <- "https://naturalearth.s3.amazonaws.com/110m_physical/ne_110m_ocean.zip"
+zip_file <- file.path(ocean_data_dir, basename(URL))
+if (!file.exists(zip_file)) {
+    download.file(URL, zip_file)
+}
+
+files <- unzip(zip_file, exdir = ocean_data_dir) #unzips ocean datafile
+oceans <- read_sf(grep("shp$", files, value = TRUE)) #Reads shape file
+
+```
+
+```{r Species 1 remove ocean points}
+#| echo: false
+
+#Aligning species coordinates with ocean coordinate reference system.
+species1_coords <- st_as_sf(species1_coords, coords = c("lon", "lat"))
+st_crs(species1_coords) <- st_crs(oceans)
+sf_use_s2(FALSE)  # Disables spherical geometry
+
+# Find where out points intersect with the ocean
+species1_intersect <- sapply(st_intersects(species1_coords, oceans), function(z) if (length(z) == 0) NA_integer_ else z[1])
+
+if (sum(!is.na(species1_intersect)) > 0) {
+    species1_coords <- data.frame(st_coordinates(species1_coords[is.na(species1_intersect), ]))
+} else {
+    species1_coords <- data.frame(st_coordinates(species1_coords))
+}
+colnames(species1_coords) <- c("lon", "lat")
+```
+```{r Species 2 remove ocean points}
+#| echo: false
+#Aligning species coordinates with ocean coordinate reference system.
+species2_coords <- st_as_sf(species2_coords, coords = c("lon", "lat"))
+st_crs(species2_coords) <- st_crs(oceans)
+sf_use_s2(FALSE)  # Disables spherical geometry
+
+# Find where out points intersect with the ocean
+species2_intersect <- sapply(st_intersects(species2_coords, oceans), function(z) if (length(z) == 0) NA_integer_ else z[1])
+
+#Remove intersect points
+if (sum(!is.na(species2_intersect)) > 0) {
+    species2_coords <- data.frame(st_coordinates(species2_coords[is.na(species2_intersect), ]))
+} else {
+    species2_coords <- data.frame(st_coordinates(species2coords))
+}
+colnames(species2_coords) <- c("lon", "lat")
+```
+
+#### Load in a World Map:
+
+```{r Creating World Map object}
+world_map <- getMap(resolution = "coarse")
+```
+
+## Distribution Modelling
+
+#### Species 1
+
+#### Species 2
+
+## Distribution Overlap
+
+#### Plotting
+
+#### Metrics
+
+## Modelling Interspecies Distribution Dependence
+
+## Future Distribution Prediction
+
+#### Species 1
+
+#### Species 2
+
+#### Degree of Overlap
+
+## Bibliography
