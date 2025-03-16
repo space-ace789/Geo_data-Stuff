@@ -208,6 +208,12 @@ rbind(
 
 # Question 1: What are the limitations of this approach?
 
+#It is very possible that the species does occur in some of the sites that are randomly
+#selected to not contain it.Also as randomly generating might get points that are clearly
+#very close or on top of points where they have been spotted. In general single 
+#points rather than a more joined up set up ranges as areas is not so good for mapping 
+#distributions.
+
 # 4.1) Generate random background points for comparison
 
 # Define study extent based on species occurrence data (with some buffer around it)
@@ -232,8 +238,17 @@ points(bg, col="black", pch=20, cex=0.7)
 points(species.coords, col="green", pch=20, cex=0.7)
 
 # Question 2: Why is it better not to have too large a region for your background?
+
+# It will start selecting points outside of the area you are looking at, and means
+# that you might not get all 500 of the random points actually within the study area
+# reducing the amount of 'absence data you have'
+
 # Question 3: Do you think C. arabica is really absent from all the
 # localities selected as background points? Will it matter?
+
+#No it is probably not absent from these sites, on the whole it should not matter too
+#much, but it must be remembered when intepreting the results, should be interpreted
+#with a grain of salt.
 
 # Now we are settled on our area of extent, we can crop the bio.data to just keep values for this region
 # It isn't essential but speeds up some later steps
@@ -265,11 +280,13 @@ gm1 <- glm(pa ~ bio1 + bio2 + bio3 + bio4 + bio5,
 
 # Look at a summary of the results
 summary(gm1)
+
 #bio3 does not seem to have any significant predictive value on the presence/absence 
 #of this species, bio5 also has a much weaker association than the other variables
 #but is still significant.
 
 # Question 4: Which variables contribute significantly to explaining presence/absence?
+
 #See above
 
 # 4.4 Predict species distribution from the model and plot it
@@ -290,7 +307,7 @@ points(species.coords, col="yellow", pch=20, cex=1.5)
 
 # Question 5: How well do you think the model has predicted the distribution?
 
-#This seemse to mpredict the distributions fairly well as the highest concentrations
+#This seems to predict the distributions fairly well as the highest concentrations
 #of dots tend to fall within areas predicted to be more likely for the species to be present.
 #Although as there is are no data points for the central band of Africa it despite
 #the model predicting it should be there it suggests there might be a confounding 
@@ -360,7 +377,7 @@ evaluate(testpres, testbackg, gm2)
 # Does a model including these variables predict distribution better than alternatives?
 
 #I expect that bioclimatic variables 1, 2, and 4 are most important for predicting
-#presence of the species. You would therefore expect a modle containing these to 
+#presence of the species. You would therefore expect a model containing these to 
 #perform better than one which does not, and this does seem to be the case based on 
 #the evaluation of the two models we have here. 
 # =========================================================================
