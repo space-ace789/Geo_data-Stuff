@@ -15,7 +15,7 @@ The two species I have chosen to look at are the Fisher (*Pekania pennanti*) and
 
 ## Set Up
 
-#### Loading packages:
+#### Packages used:
 
 ```{r Packages Used}
 #| output: false
@@ -27,7 +27,13 @@ library(geodata)
 library(tibble)
 ```
 
-#### Creating the Datasets:
+#### Load in a World Map:
+
+```{r Creating World Map object}
+world_map <- getMap(resolution = "coarse")
+```
+
+#### Creating Species Coordinate Datasets:
 
 ```{r Creating a file structure}
 #| include: false
@@ -38,22 +44,21 @@ sapply(c("data/raw", "data/processed"), function(dir) {
 #This code creates a file structure to allow the datasets created in this project to be stored in an organised fashion that makes them easy to find in the future.
 ```
 
-To create the datasets first the the species data is downloaded from GBIF. This includes a lot of information not required for species distribution modelling. Therefore just the latitude and longitude data is extracted from the large dataset using the coordinate extraction function (see below).
+To create the datasets first the the species data is downloaded from GBIF. This includes a lot of information not required for species distribution modelling. Therefore only the latitude and longitude data is extracted from the large dataset using the coordinate extraction function (see below). Species data was taken from GBIF data network, <https://www.gbif.org/>.
 
 ```{r Coordinate Extraction Function}
 #| code-fold: true
-#| code-summary: "Coordinate extraction function"
+#| code-summary: "Coordinate extration function"
+#This code extracts just the longitude and latitude (coordinate data) values from the GBIF data
 extract_coordinates <- function(speciesdata.gbif) {
-    cbind(speciesdata.gbif$lon, speciesdata.gbif$lat) %>% 
-    na.omit() %>% 
-    data.frame()
+    cbind(speciesdata.gbif$lon, speciesdata.gbif$lat) %>% #Combines the long atnd lat data to create coordinates
+    na.omit() %>%  
+    data.frame() #converts the list into a dataframe object
 }
 ```
 
-Example code for creating coordinate dataframe:
-
 ```{r Species 1 coordinate data}
-
+#| echo: false
 #Downloading data from GBIF
 species1.gbif_file <- here("data", "raw", "species1.gbif.rds")
 if (!file.exists(species1.gbif_file)) {
@@ -83,9 +88,11 @@ if (!file.exists(species2.gbif_file)) {
 species2_coords <- extract_coordinates(species2.gbif)
 colnames(species2_coords) <- c("lon", "lat")
 
+#species1.gbif and species2.gbif (coordinate data) can be found stored within the raw folder which is within the data folder, as created in chunk 3: Creating file structure.
+
 ```
 
-You also need to ensure that the coordinates in the species datasets **only** include points on continental landmasses. The ocean coordinates were taken from the natural earth dataset found here: <https://naturalearth.s3.amazonaws.com/110m_physical/ne_110m_ocean.zip>.
+To ensure only coordinates within continental landmasses were included any points that intersected with a map of ocean coordinates were removed. The ocean coordinates were taken from the natural earth dataset, <https://naturalearth.s3.amazonaws.com/110m_physical/ne_110m_ocean.zip>.
 
 ```{r Downloading and Reading in Ocean Data}
 #| echo: false
@@ -102,15 +109,18 @@ if (!file.exists(zip_file)) {
 files <- unzip(zip_file, exdir = ocean_data_dir) #unzips ocean datafile
 oceans <- read_sf(grep("shp$", files, value = TRUE)) #Reads shape file
 
+#The folder containing ocean data coordinates can be found within the raw folder within the data folder, as defined by the file structure created in chunk 3: creating a file structure.
 ```
 
 ```{r Species 1 remove ocean points}
 #| echo: false
+#| output: false
 
 #Aligning species coordinates with ocean coordinate reference system.
 species1_coords <- st_as_sf(species1_coords, coords = c("lon", "lat"))
 st_crs(species1_coords) <- st_crs(oceans)
 sf_use_s2(FALSE)  # Disables spherical geometry
+
 
 # Find where out points intersect with the ocean
 species1_intersect <- sapply(st_intersects(species1_coords, oceans), function(z) if (length(z) == 0) NA_integer_ else z[1])
@@ -122,12 +132,15 @@ if (sum(!is.na(species1_intersect)) > 0) {
 }
 colnames(species1_coords) <- c("lon", "lat")
 ```
+
 ```{r Species 2 remove ocean points}
 #| echo: false
+#| output: false
+
 #Aligning species coordinates with ocean coordinate reference system.
 species2_coords <- st_as_sf(species2_coords, coords = c("lon", "lat"))
 st_crs(species2_coords) <- st_crs(oceans)
-sf_use_s2(FALSE)  # Disables spherical geometry
+sf_use_s2(FALSE)
 
 # Find where out points intersect with the ocean
 species2_intersect <- sapply(st_intersects(species2_coords, oceans), function(z) if (length(z) == 0) NA_integer_ else z[1])
@@ -136,22 +149,552 @@ species2_intersect <- sapply(st_intersects(species2_coords, oceans), function(z)
 if (sum(!is.na(species2_intersect)) > 0) {
     species2_coords <- data.frame(st_coordinates(species2_coords[is.na(species2_intersect), ]))
 } else {
-    species2_coords <- data.frame(st_coordinates(species2coords))
+    species2_coords <- data.frame(st_coordinates(species2_coords))
 }
 colnames(species2_coords) <- c("lon", "lat")
 ```
 
-#### Load in a World Map:
+```{r Removing anomalous points}
+#| echo: false
 
-```{r Creating World Map object}
-world_map <- getMap(resolution = "coarse")
+#DO NOT RUN THIS CODE IF USING DIFFERENT SPECIES
+
+#On visualisation of the final coordinate data for Fishers and Porcupine it became that there were a few potentially anomalous points. Both species are found exclusively in North America however between both species a small number of sightings were reported in Europe, Africa, Asia and South America. All of these points are very large outliers in their respective species data sets therefore they were removed from the dataset. 
+
+species1_coords <- subset(species1_coords, lon < 0) #Removes any points which are in the Eastern Hemisphere, Fishers are not found here.
+
+species2_coords <- subset(species2_coords, lon < 0) #Removes any points in the Eastern Hemisphere, North American Porcupine is not found here.
+species2_coords <- subset(species2_coords, lat > 0) #Removes any points in the Southern Hemisphere, North American Porcupine is not found here. 
+
+```
+
+#### Loading and Extracting Climate Variables:
+
+To create a model predicting species distribution based on climate variables you also need a dataset of various climate measurements from the area covered by the species dataset coordinates. Climate data was downloaded from the worldclim database, <https://www.worldclim.org/>.
+
+```{r Downloading climate data}
+#| echo: false
+bio_data <- worldclim_global(var = "bio", res = 10, path = here("data", "raw"))
+names(bio_data) <- paste0("bio", 1:19)
+```
+
+The climate variables specific to the range of the chosen species are then extracted from the wider dataset and combined with the coordinate data to create the final processed datasets on which our models will be based.
+
+```{r Species 1 processed data}
+#| echo: false
+species1_biovalues <- extract(bio_data, species1_coords)[, -1] #Extracts just the climate data for the coordinates the species has been recorded at.
+species1_data <- cbind(species1_coords, species1_biovalues)
+write.csv(species1_data, file = here("data", "processed", "species1_data.csv"), row.names = FALSE) #Creates a csv file
+```
+
+```{r Species 2 Processed data}
+#| echo: false
+species2_biovalues <- extract(bio_data, species2_coords)[, -1]
+species2_data <- cbind(species2_coords, species2_biovalues)
+write.csv(species2_data, file = here("data", "processed", "species2_data.csv"), row.names = FALSE)
+
+#The csv files for species1_data and species2_data can be found in the processed folder within the data folder as defined by the file structure set up in chunk 3: creating a file structure. 
 ```
 
 ## Distribution Modelling
 
-#### Species 1
+#### Species 1 (Fisher)
 
-#### Species 2
+The data downloaded from GBIF only contains data on presence, absence was not recorded. Absence data is required to run the models therefore pseudoabsence data was created by randomly generating 500 points within the study area of each species. This was done using the code below.
+
+```{r Creating Species 1 study area extent mask}
+#| echo: false
+
+#Defining the study area extent
+species1_extent <- extent(
+    min(species1_coords$lon) - 5,
+    max(species1_coords$lon) + 5,
+    min(species1_coords$lat) - 5,
+    max(species1_coords$lat) + 5
+)
+#The extent is defined as slightly larger than the min and max of the species coordinate data to account for uncertainties and create a buffer area.
+
+#Creating Mask Area for species 1 study area
+species1_extent_mask <- rasterize(world_map, raster(species1_extent, res=0.5))
+```
+
+```{r Species 1 psuedoabsence data}
+#| code-fold: true
+#| code-summary: "Generation of Pseudoabsence Data"
+species1_bg <- randomPoints(species1_extent_mask, 500, ext=species1_extent) #generates the pseudoabsence points. 
+colnames(species1_bg) <- c("lon", "lat") #assigns names to the columns
+```
+
+```{r Species 1 dataset with presence absence and climate variables}
+#| echo: false
+
+species1_biodata <- crop(bio_data, species1_extent)
+
+#Combining the presence and absence points.
+species1_combined_coords <- rbind(species1_coords, species1_bg)
+
+#Creates dataframe where 1 indicates presence and 0 absence at each coordinate.
+species1_pa_data <- c(rep(1, nrow(species1_coords)), rep(0, nrow(species1_bg)))
+
+# Extract the bioclimatic data for the presence and background points
+species1_env_pa_data <- data.frame(cbind(pa = species1_pa_data, extract(species1_biodata, species1_combined_coords)))
+
+#Creating datasets for absence and presence separately for further testing of predictive power.
+species1_testpres <- data.frame(extract(species1_biodata, species1_coords))
+species1_testabs <- data.frame(extract(species1_biodata, species1_bg))
+
+```
+
+The ability of different climate variables to predict the presence absence data was then compared by creating a set of generalised linear models. The models assume binomial errors as the presence absence data is binary data. In total five models were created each containing 3-4 of the climate variables, as this number of variables per model which was small enough to prevent issues of multiple colinearity resulting in singularities and overfitting.
+
+[Model Summaries and AIC:]{.underline}
+
+```{r Species 1, model 1 (variables 1-4)}
+#| echo: false
+species1_glm1 <- glm(pa ~ bio1 + bio2 + bio3 + bio4,
+    family = binomial(link = "logit"), data = species1_env_pa_data
+)
+```
+
+```{r Species 1, model 2 (variables 5-8)}
+#| echo: false
+species1_glm2 <- glm(pa ~ bio5 + bio6 + bio7 + bio8,
+    family = binomial(link = "logit"), data = species1_env_pa_data
+)
+```
+
+```{r Species 1, model 3 (variables 9-12)}
+#| echo: false
+species1_glm3 <- glm(pa ~ bio9 + bio10 + bio11 + bio12,
+    family = binomial(link = "logit"), data = species1_env_pa_data
+)
+```
+
+```{r Species 1, model 4 (variables 13-16)}
+#| echo: false
+species1_glm4 <- glm(pa ~ bio13 + bio14 + bio15 + bio16,
+    family = binomial(link = "logit"), data = species1_env_pa_data
+)
+```
+
+```{r Species 1, model 5 (variables 17-19)}
+#| echo: false
+species1_glm5 <- glm(pa ~ bio17 + bio18 + bio19,
+    family = binomial(link = "logit"), data = species1_env_pa_data
+)
+```
+
+::: panel-tabset
+###### Model 1
+
+Model containing variables 1, 2, 3, and 4.
+
+```{r Species 1 Model 1 results}
+#| echo: false
+summary(species1_glm1) 
+```
+
+###### Model 2
+
+Model containing climate variables 5, 6, 7, and 8.
+
+```{r Species 1 Model 2 results}
+#| echo: false
+summary(species1_glm2)
+```
+
+###### Model 3
+
+Model containing climate variables 9, 10, 11, and 12.
+
+```{r Species 1 Model 3 results}
+#| echo: false
+summary(species1_glm3)
+```
+
+###### Model 4
+
+Model containing climate variables 13, 14, 15 and 16.
+
+```{r Species 1 Model 4 results}
+#| echo: false
+summary(species1_glm4)
+```
+
+###### Model 5
+
+Model containing climate variables 17, 18 and 19.
+
+```{r Species 1 Model 5 results}
+#| echo: false
+summary(species1_glm5)
+```
+:::
+
+Figure 1: Tables showing summary statistics for each generalised linear model of the effect of climate on species 1 distribution.
+
+All models were able to somewhat predict the distribution of fishers, however variable 10 as well as all of the variables in model 2 do not appear to be as important for predicting distribution as some of the other variables.
+
+To compare how well each model predicts the presence/absence of fishers an Akaike Information Criterion test was performed.
+
+```{r Comparison of AIC values for species 1 models}
+#| warning: false
+#| echo: false
+AIC(species1_glm1,species1_glm2, species1_glm3, species1_glm4, species1_glm5 )
+```
+
+Figure 2: Table comparing the AIC values of the five models for species 1.
+
+Model 4 has the lowest AIC value and is therefore the best model for predicting fisher distribution, out of those created in this analysis and based on this set of 19 climate variables. This suggests that precipitation of the wettest and driest months, precipitation seasonality and precipitation of the wettest quarter are all very important in determining fisher distribution. The fact that model 4, which contains only variables related to precipitation, was the best model may suggest that precipitation has a stronger effect on fisher distribution than temperature. Although temperature does still appear to have an effect. 
+
+[Evaluating AUC and correlation of models:]{.underline}
+
+The ability of a models predictions to match the observed data can also be evaluated by looking at the area under the curve (AUC) and correlation (cor) values.
+
+```{r Species 1 model 1 evaluation}
+#| echo: false
+#Evaluate function can be used to produce AUC and cor variables
+species1_model1_eval <- evaluate(species1_testpres, species1_testabs, species1_glm1) 
+```
+
+```{r Species 1 model 2 evaluation}
+#| echo: false
+species1_model2_eval <- evaluate(species1_testpres, species1_testabs, species1_glm2)
+```
+
+```{r Species 1 model 3 evaluation}
+#| echo: false
+species1_model3_eval <- evaluate(species1_testpres, species1_testabs, species1_glm3)
+```
+
+```{r Species 1 model 4 evaluation}
+#| echo: false
+species1_model4_eval <- evaluate(species1_testpres, species1_testabs, species1_glm4)
+```
+
+```{r Species 1 model 5 evaluation}
+#| echo: false
+species1_model5_eval <- evaluate(species1_testpres, species1_testabs, species1_glm5)
+```
+
+::: panel-tabset
+###### Model 1
+
+Model containing variables 1, 2, 3, and 4.
+
+```{r Species 1 Model 1 evaluation results}
+#| echo: false
+print(species1_model1_eval) 
+```
+
+###### Model 2
+
+Model containing climate variables 5, 6, 7, and 8.
+
+```{r Species 1 Model 2 evaluation results}
+#| echo: false
+print(species1_model2_eval) 
+```
+
+###### Model 3
+
+Model containing climate variables 9, 10, 11, and 12.
+
+```{r Species 1 Model 3 evaluation results}
+#| echo: false
+print(species1_model3_eval) 
+```
+
+###### Model 4
+
+Model containing climate variables 13, 14, 15 and 16.
+
+```{r Species 1 Model 4 evaluation results}
+#| echo: false
+print(species1_model4_eval) 
+```
+
+###### Model 5
+
+Model containing climate variables 17, 18 and 19.
+
+```{r Species 1 Model 5 evaluation results}
+#| echo: false
+print(species1_model5_eval) 
+```
+:::
+
+Figure 3: Tables showing the AUC and cor values of each model for species 1.
+
+The results of evaluating the models using AUC and cor values matched those done by comparing the model AIC values. Model 4 had both the highest AUC and the highest correlation. However its cor values was just below 0.5 suggesting that the correlation between these model predictions and the observed distributions are of moderate strength at best. Potentially a model which combines data on precipitation and temperature might have provide more accurate predictions. This could also suggest that non-climate variables are also important in determining the distribution of fishers e.g. interactions with other species.
+
+As model 4 is consistently shown to be the best model at predicting fisher distribution (out of those created in this analysis) this is the one which will be used to map current distribution of fishers.
+
+[Mapping current distribution:]{.underline}
+
+```{r Predicting Species 1 current distribution}
+#| echo: false
+species1_pred <- predict(species1_biodata, species1_glm4, ext = species1_extent, type = "response")
+species1_pred <- crop(species1_pred, species1_extent)
+
+```
+
+```{r Plotting species 1 current distribution}
+#| echo: false
+#| fig-cap: "Figure 4: Map showing the current distribution of species 1 based on predictions made from a GLM based on climate variables 13, 14, 15, and 16"
+
+plot(species1_pred, main = "Probability of species 1 presence based on GLM predictions")
+plot(world_map, add = TRUE, border = "darkgrey")
+points(species1_coords, col="#36b281", pch=21, cex=1, bg = "#56cc9d")
+legend(x = -143, y = 37, strwrap("GBIF Presence Coordinates", 15), bty = "n", pch = 21, pt.bg = c("#56cc9d", "white"),pt.lwd = 0,pt.cex = 1 ,cex = 0.75,)
+```
+
+The distribution predicted by the model matches the observed data to a certain extent. The high probabilities of occurence found across the entire East side of North America and along the Western coast, especially moving up into Canada both line up with the two main clusters of Fisher presence shown by the GBIF data. However the model misses the group of fishers which inhabit central Canada. On the Eastern coast the area's of predicted high probability also extend further south and north than observed data. As model four only includes information on precipitation it is possible adding temperature would restrict the latitudinal range predicted by the model. While the model is able to accurately pick out areas with a high concentration of fishers it shows a two population, East vs West, pattern of distribution while the observed data is more of a continuous band across the centre of the region. 
+
+#### Species 2 (North American Porcupine)
+
+```{r Creating Species 2 study area extent mask}
+#| echo: false
+
+#Defining the study area extent
+species2_extent <- extent(
+    min(species2_coords$lon) - 5,
+    max(species2_coords$lon) + 5,
+    min(species2_coords$lat) - 5,
+    max(species2_coords$lat) + 5
+)
+
+#Creating Mask Layer for study area
+species2_extent_mask <- rasterize(world_map, raster(species2_extent, res=0.5))
+```
+
+```{r Species 2 psuedoabsence data}
+#| echo: false
+species2_bg <- randomPoints(species2_extent_mask, 500, ext=species2_extent) #generates the pseudoabsence points. 
+colnames(species2_bg) <- c("lon", "lat") #assigns names to the columns
+```
+
+```{r Species 2 dataset with presence absence and climate variables}
+#| echo: false
+
+species2_biodata <- crop(bio_data, species2_extent)
+
+#Combining the presence and absence points.
+species2_combined_coords <- rbind(species2_coords, species2_bg)
+
+#Creates dataframe where 1 indicates presence and 0 absence at each coordinate.
+species2_pa_data <- c(rep(1, nrow(species2_coords)), rep(0, nrow(species2_bg)))
+
+# Extract the bioclimatic data for the presence and background points
+species2_env_pa_data <- data.frame(cbind(pa = species2_pa_data, extract(species2_biodata, species2_combined_coords)))
+
+#Creating datasets for absence and presence separately for further testing of predictive power.
+species2_testpres <- data.frame(extract(species2_biodata, species2_coords))
+species2_testabs <- data.frame(extract(species2_biodata, species2_bg))
+
+```
+
+
+[Model Summaries and AIC:]{.underline}
+
+```{r Species 2, model 1 (variables 1-4)}
+#| echo: false
+species2_glm1 <- glm(pa ~ bio1 + bio2 + bio3 + bio4,
+    family = binomial(link = "logit"), data = species2_env_pa_data
+)
+```
+
+```{r Species 2, model 2 (variables 5-8)}
+#| echo: false
+species2_glm2 <- glm(pa ~ bio5 + bio6 + bio7 + bio8,
+    family = binomial(link = "logit"), data = species2_env_pa_data
+)
+```
+
+```{r Species 2, model 3 (variables 9-12)}
+#| echo: false
+species2_glm3 <- glm(pa ~ bio9 + bio10 + bio11 + bio12,
+    family = binomial(link = "logit"), data = species2_env_pa_data
+)
+```
+
+```{r Species 2, model 4 (variables 13-16)}
+#| echo: false
+species2_glm4 <- glm(pa ~ bio13 + bio14 + bio15 + bio16,
+    family = binomial(link = "logit"), data = species2_env_pa_data
+)
+```
+
+```{r Species 2, model 5 (variables 17-19)}
+#| echo: false
+species2_glm5 <- glm(pa ~ bio17 + bio18 + bio19,
+    family = binomial(link = "logit"), data = species2_env_pa_data
+)
+```
+
+::: panel-tabset
+###### Model 1
+
+Model containing variables 1, 2, 3, and 4.
+
+```{r Species 2 Model 1 results}
+#| echo: false
+summary(species2_glm1) 
+```
+
+###### Model 2
+
+Model containing climate variables 5, 6, 7, and 8.
+
+```{r Species 2 Model 2 results}
+#| echo: false
+summary(species2_glm2)
+```
+
+###### Model 3
+
+Model containing climate variables 9, 10, 11, and 12.
+
+```{r Species 2 Model 3 results}
+#| echo: false
+summary(species2_glm3)
+```
+
+###### Model 4
+
+Model containing climate variables 13, 14, 15 and 16.
+
+```{r Species 2 Model 4 results}
+#| echo: false
+summary(species2_glm4)
+```
+
+###### Model 5
+
+Model containing climate variables 17, 18 and 19.
+
+```{r Species 2 Model 5 results}
+#| echo: false
+summary(species2_glm5)
+```
+:::
+
+Figure 5: Tables showing summary statistics for each model of climate distribution on species 2 distribution.
+
+For the North American Porcupine only three of the models are able to significantly predict occurrence, models 1, 4, 5. Although the predictive power of model 4 may mostly rely on just one variable, variable 15 (precipitation seasonality). 
+
+To compare how well each model predicts the presence/absence of the North American Porcupine an Akaike Information Criterion test was performed.
+
+```{r Comparison of AIC values for species 2}
+#| warning: false
+#| echo: false
+AIC(species2_glm1,species2_glm2, species2_glm3, species2_glm4, species2_glm5 )
+```
+
+Figure 6: Table comparing the AIC values of the models for species 2.
+
+The model with the lowest AIC value is model 1, which indicates annual mean temperature, mean diurnal range, isothermality and temperature seasonality are all important factors in determining porcupine distribution. However as the other two models containing primarily variables linked to temperature had very limited predictive ability the role. of precipitation cannot fully be discounted as both models 4 and 5 had lower AICS than models 2 and 4. In general all of the models for species 2 had higher AIC's than the models for species 1 which suggests that climate is not as important in controlling the range of porcupines as it is for fishers. 
+
+[Evaluating AUC and correlation of models:]{.underline}
+
+The ability of a models predictions to match the observed data can also be evaluated by looking at the area under the curve (AUC) and correlation (cor) values.
+
+```{r Species 2 model 1 evaluation}
+#| echo: false
+#Evaluate function can be used to produce AUC and cor variables
+species2_model1_eval <- evaluate(species2_testpres, species2_testabs, species2_glm1) 
+```
+
+```{r Species 2 model 2 evaluation}
+#| echo: false
+species2_model2_eval <- evaluate(species2_testpres, species2_testabs, species2_glm2)
+```
+
+```{r Species 2 model 3 evaluation}
+#| echo: false
+species2_model3_eval <- evaluate(species2_testpres, species2_testabs, species2_glm3)
+```
+
+```{r Species 2 model 4 evaluation}
+#| echo: false
+species2_model4_eval <- evaluate(species2_testpres, species2_testabs, species2_glm4)
+```
+
+```{r Species 2 model 5 evaluation}
+#| echo: false
+species2_model5_eval <- evaluate(species2_testpres, species2_testabs, species2_glm5)
+```
+
+::: panel-tabset
+###### Model 1
+
+Model containing variables 1, 2, 3, and 4.
+
+```{r Species 2 Model 1 evaluation results}
+#| echo: false
+print(species2_model1_eval) 
+```
+
+###### Model 2
+
+Model containing climate variables 5, 6, 7, and 8.
+
+```{r Species 2 Model 2 evaluation results}
+#| echo: false
+print(species2_model2_eval) 
+```
+
+###### Model 3
+
+Model containing climate variables 9, 10, 11, and 12.
+
+```{r Species 2 Model 3 evaluation results}
+#| echo: false
+print(species2_model3_eval) 
+```
+
+###### Model 4
+
+Model containing climate variables 13, 14, 15 and 16.
+
+```{r Species 2 Model 4 evaluation results}
+#| echo: false
+print(species2_model4_eval) 
+```
+
+###### Model 5
+
+Model containing climate variables 17, 18 and 19.
+
+```{r Species 2 Model 5 evaluation results}
+#| echo: false
+print(species2_model5_eval) 
+```
+:::
+
+Figure 7: Tables showing the AUC and cor values of each model for species 2.
+
+The results of the evaluation of AUC and cor values are consistent with the AIC values of the models, with model 1 showing the highest AUC and cor values. However the correlation of model one was around 0.3. Suggesting that even though it is the best model it is still quite poor at predicting porcupine distribution. Strengthening the argument that climate is not the main factor determining the range of the North American Porcupine. As it is the best model created in this analysis at explaining
+
+[Mapping current distribution:]{.underline}
+
+```{r Predicting Species 2 current distribution}
+#| echo: false
+species2_pred <- predict(species2_biodata, species1_glm1, ext = species2_extent, type = "response")
+species2_pred <- crop(species2_pred, species2_extent)
+
+```
+
+```{r Plotting species 2 current distribution}
+#| echo: false
+#| fig-cap: "Figure 8: Map showing the current distribution of Species 2 based on predictions made from a GLM based on climate variables 1, 2, 3, and 4"
+#| fig-align: 'center'
+plot(species2_pred, main = "Probability of species 2 presence based on GLM predictions")
+plot(world_map, add = TRUE, border = "darkgrey")
+points(species2_coords, col="#36b281", pch=21, cex=1, bg = "#56cc9d")
+legend(x = -150, y = 37, strwrap("GBIF Presence Coordinates", 15), bty = "n", pch = 21, pt.bg = c("#56cc9d", "white"),pt.lwd = 0,pt.cex = 1 ,cex = 0.75,)
+```
+In general the observed data from the GBIF dataset matches with areas predicted by the model to have a high chance of occurence. However the model slightly under estimates the latitudinal range of the porcupine with several presence coordinates falling both above and below the main region of predicted occupation. The model also predicts that porcupines would be expected to be found in south-eastern America, however they are mostly absent from this region in the observed data. Compared to fishers porcupines have a much large range both in the predicted and observed datasets, being found throughout most of the region and most areas where fishers are also found. 
 
 ## Distribution Overlap
 
@@ -163,7 +706,48 @@ world_map <- getMap(resolution = "coarse")
 
 ## Future Distribution Prediction
 
+To predict the future distribution of species future climate projections are required to provide data to run the previously created models on. The projection data used here was from CMIP5 (Coupled Model Intercomparison Project Phase 5), which is available here <https://aims2.llnl.gov/search>.
+
+```{r Downloading future climate projections data}
+#| echo: false
+#Downloading the data
+future_bio_data <- cmip6_world(
+    model = "CanESM5",
+    var = "bio", 
+    ssp = "245",
+    res = 10,
+    time = "2061-2080",
+    path = here("data", "raw")
+)
+names(future_bio_data) <- names(bio_data) #ensures the same names used in bio_data are applied to the future_bio_data dataframe.
+```
+
 #### Species 1
+
+```{r Crop future climate data to the species 1 study area}
+#| echo: false
+#crops projection data so it is just looking at the region of interest.
+species1_future_bio_data <- crop(future_bio_data, species1_extent)
+```
+
+```{r Predicting future distribution of species 1}
+#| echo: false
+species1_future_pred <- predict(species1_future_bio_data, species1_glm4, ext = species1_extent, type = "response")
+```
+
+```{r Plotting future distributions}
+# Plots results side by side
+par(mfrow = c(1, 2))
+
+# Present distribution
+plot(species1_pred, main = "Present Distribution of Species 1")
+plot(world_map, add = TRUE, border = "darkgrey")
+
+# Future distribution
+plot(species1_future_pred, main = "Future Distribution of Species1")
+plot(world_map, add = TRUE, border = "darkgrey")
+```
+
 
 #### Species 2
 
