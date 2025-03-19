@@ -124,7 +124,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rworldmap)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sf)</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(geodata)</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tibble)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tibble)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(terra)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
 <section id="load-in-a-world-map" class="level4">
@@ -163,8 +164,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell">
 <details class="code-fold">
 <summary>Generation of Pseudoabsence Data</summary>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>species1_bg <span class="ot">&lt;-</span> <span class="fu">randomPoints</span>(species1_extent_mask, <span class="dv">500</span>, <span class="at">ext=</span>species1_extent) <span class="co">#generates the pseudoabsence points. </span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(species1_bg) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"lon"</span>, <span class="st">"lat"</span>) <span class="co">#assigns names to the columns</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">123</span>) <span class="co">#seed used so that the randomly generated absence points are the same each time so that analysis can be consistent. </span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>species1_bg <span class="ot">&lt;-</span> <span class="fu">randomPoints</span>(species1_extent_mask, <span class="dv">500</span>, <span class="at">ext=</span>species1_extent) <span class="co">#generates the pseudoabsence points. </span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(species1_bg) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"lon"</span>, <span class="st">"lat"</span>) <span class="co">#assigns names to the columns</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 <p>The ability of different climate variables to predict the presence absence data was then compared by creating a set of generalised linear models. The models assume binomial errors as the presence absence data is binary data. In total five models were created each containing 3-4 of the climate variables, as this number of variables per model which was small enough to prevent issues of multiple colinearity resulting in singularities and overfitting.</p>
@@ -183,19 +185,19 @@ glm(formula = pa ~ bio1 + bio2 + bio3 + bio4, family = binomial(link = "logit"),
 
 Coefficients:
               Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept) 19.2789636  1.3731679  14.040  &lt; 2e-16 ***
-bio1         0.2067977  0.0197913  10.449  &lt; 2e-16 ***
-bio2         0.5082776  0.0758463   6.701 2.06e-11 ***
-bio3        -0.4614277  0.0342634 -13.467  &lt; 2e-16 ***
-bio4        -0.0096810  0.0009434 -10.262  &lt; 2e-16 ***
+(Intercept) 21.5530421  1.3634661  15.808  &lt; 2e-16 ***
+bio1         0.1624200  0.0198623   8.177 2.90e-16 ***
+bio2         0.5047900  0.0736122   6.857 7.01e-12 ***
+bio3        -0.4860906  0.0332938 -14.600  &lt; 2e-16 ***
+bio4        -0.0109573  0.0009384 -11.677  &lt; 2e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
     Null deviance: 3494.9  on 6311  degrees of freedom
-Residual deviance: 2872.5  on 6307  degrees of freedom
-AIC: 2882.5
+Residual deviance: 2943.6  on 6307  degrees of freedom
+AIC: 2953.6
 
 Number of Fisher Scoring iterations: 6</code></pre>
 </div>
@@ -212,19 +214,19 @@ glm(formula = pa ~ bio5 + bio6 + bio7 + bio8, family = binomial(link = "logit"),
 
 Coefficients:
               Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept)  1.466e+00  6.997e-01   2.095   0.0362 *  
-bio5        -4.712e+04  4.013e+04  -1.174   0.2403    
-bio6         4.712e+04  4.013e+04   1.174   0.2403    
-bio7         4.712e+04  4.013e+04   1.174   0.2403    
-bio8         3.433e-02  8.809e-03   3.897 9.75e-05 ***
+(Intercept)  2.355e+00  7.016e-01   3.357 0.000788 ***
+bio5        -4.992e+04  3.923e+04  -1.272 0.203245    
+bio6         4.992e+04  3.923e+04   1.272 0.203244    
+bio7         4.992e+04  3.923e+04   1.272 0.203245    
+bio8         1.662e-02  8.824e-03   1.883 0.059644 .  
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
     Null deviance: 3494.9  on 6311  degrees of freedom
-Residual deviance: 3253.8  on 6307  degrees of freedom
-AIC: 3263.8
+Residual deviance: 3372.7  on 6307  degrees of freedom
+AIC: 3382.7
 
 Number of Fisher Scoring iterations: 5</code></pre>
 </div>
@@ -241,26 +243,26 @@ glm(formula = pa ~ bio9 + bio10 + bio11 + bio12, family = binomial(link = "logit
 
 Coefficients:
               Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept) -2.1968584  0.5249031  -4.185 2.85e-05 ***
-bio9        -0.0858517  0.0093369  -9.195  &lt; 2e-16 ***
-bio10        0.0493886  0.0242320   2.038   0.0415 *  
-bio11        0.0858725  0.0183666   4.675 2.93e-06 ***
-bio12        0.0051510  0.0002374  21.701  &lt; 2e-16 ***
+(Intercept) -2.0444301  0.5275894  -3.875 0.000107 ***
+bio9        -0.0763295  0.0092896  -8.217  &lt; 2e-16 ***
+bio10        0.0332500  0.0240264   1.384 0.166391    
+bio11        0.0675660  0.0182837   3.695 0.000220 ***
+bio12        0.0050917  0.0002272  22.412  &lt; 2e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
     Null deviance: 3494.9  on 6311  degrees of freedom
-Residual deviance: 2637.8  on 6307  degrees of freedom
-AIC: 2647.8
+Residual deviance: 2721.0  on 6307  degrees of freedom
+AIC: 2731
 
 Number of Fisher Scoring iterations: 6</code></pre>
 </div>
 </div>
 </div>
 <div id="tabset-1-4" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-4-tab">
-<p>Model containing climate variables 13, 14, 15 and 16.</p>
+<p>Model containing climate variables 13, 14, 15, and 16.</p>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -270,26 +272,26 @@ glm(formula = pa ~ bio13 + bio14 + bio15 + bio16, family = binomial(link = "logi
 
 Coefficients:
              Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept)  2.732213   0.396962   6.883 5.87e-12 ***
-bio13       -0.092620   0.014913  -6.210 5.28e-10 ***
-bio14       -0.025505   0.006781  -3.761 0.000169 ***
-bio15       -0.074284   0.007393 -10.047  &lt; 2e-16 ***
-bio16        0.044634   0.005203   8.578  &lt; 2e-16 ***
+(Intercept)  3.430714   0.397551   8.630  &lt; 2e-16 ***
+bio13       -0.076640   0.014358  -5.338 9.42e-08 ***
+bio14       -0.033002   0.006663  -4.953 7.31e-07 ***
+bio15       -0.083754   0.007425 -11.280  &lt; 2e-16 ***
+bio16        0.038476   0.005015   7.672 1.70e-14 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
     Null deviance: 3494.9  on 6311  degrees of freedom
-Residual deviance: 2600.6  on 6307  degrees of freedom
-AIC: 2610.6
+Residual deviance: 2634.3  on 6307  degrees of freedom
+AIC: 2644.3
 
 Number of Fisher Scoring iterations: 6</code></pre>
 </div>
 </div>
 </div>
 <div id="tabset-1-5" class="tab-pane" role="tabpanel" aria-labelledby="tabset-1-5-tab">
-<p>Model containing climate variables 17, 18 and 19.</p>
+<p>Model containing climate variables 17, 18, and 19.</p>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -299,18 +301,18 @@ glm(formula = pa ~ bio17 + bio18 + bio19, family = binomial(link = "logit"),
 
 Coefficients:
               Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept) -2.5699146  0.2201312 -11.674  &lt; 2e-16 ***
-bio17        0.0052014  0.0013713   3.793 0.000149 ***
-bio18        0.0139804  0.0010959  12.757  &lt; 2e-16 ***
-bio19        0.0056170  0.0006512   8.625  &lt; 2e-16 ***
+(Intercept) -2.2916219  0.2191538 -10.457  &lt; 2e-16 ***
+bio17        0.0056914  0.0013397   4.248 2.16e-05 ***
+bio18        0.0126564  0.0010758  11.765  &lt; 2e-16 ***
+bio19        0.0052539  0.0006468   8.122 4.57e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
     Null deviance: 3494.9  on 6311  degrees of freedom
-Residual deviance: 2677.3  on 6308  degrees of freedom
-AIC: 2685.3
+Residual deviance: 2753.0  on 6308  degrees of freedom
+AIC: 2761
 
 Number of Fisher Scoring iterations: 6</code></pre>
 </div>
@@ -324,11 +326,11 @@ Number of Fisher Scoring iterations: 6</code></pre>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>              df      AIC
-species1_glm1  5 2882.463
-species1_glm2  5 3263.764
-species1_glm3  5 2647.802
-species1_glm4  5 2610.578
-species1_glm5  4 2685.342</code></pre>
+species1_glm1  5 2953.616
+species1_glm2  5 3382.732
+species1_glm3  5 2730.988
+species1_glm4  5 2644.323
+species1_glm5  4 2760.966</code></pre>
 </div>
 </div>
 <p>Figure 2: Table comparing the AIC values of the five models for species 1.</p>
@@ -345,9 +347,9 @@ species1_glm5  4 2685.342</code></pre>
 <pre><code>class          : ModelEvaluation 
 n presences    : 5812 
 n absences     : 500 
-AUC            : 0.7347894 
-cor            : 0.3698676 
-max TPR+TNR at : 2.215975 </code></pre>
+AUC            : 0.7382369 
+cor            : 0.3412544 
+max TPR+TNR at : 2.21038 </code></pre>
 </div>
 </div>
 </div>
@@ -358,9 +360,9 @@ max TPR+TNR at : 2.215975 </code></pre>
 <pre><code>class          : ModelEvaluation 
 n presences    : 5812 
 n absences     : 500 
-AUC            : 0.623073 
-cor            : 0.210653 
-max TPR+TNR at : 2.043155 </code></pre>
+AUC            : 0.5742318 
+cor            : 0.1448049 
+max TPR+TNR at : 2.188867 </code></pre>
 </div>
 </div>
 </div>
@@ -371,35 +373,35 @@ max TPR+TNR at : 2.043155 </code></pre>
 <pre><code>class          : ModelEvaluation 
 n presences    : 5812 
 n absences     : 500 
-AUC            : 0.7779752 
-cor            : 0.393391 
-max TPR+TNR at : 2.24416 </code></pre>
+AUC            : 0.7585594 
+cor            : 0.3741869 
+max TPR+TNR at : 2.223178 </code></pre>
 </div>
 </div>
 </div>
 <div id="tabset-2-4" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-4-tab">
-<p>Model containing climate variables 13, 14, 15 and 16.</p>
+<p>Model containing climate variables 13, 14, 15, and 16.</p>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>class          : ModelEvaluation 
 n presences    : 5812 
 n absences     : 500 
-AUC            : 0.7997206 
-cor            : 0.4329804 
-max TPR+TNR at : 2.317599 </code></pre>
+AUC            : 0.7912066 
+cor            : 0.4386138 
+max TPR+TNR at : 2.407037 </code></pre>
 </div>
 </div>
 </div>
 <div id="tabset-2-5" class="tab-pane" role="tabpanel" aria-labelledby="tabset-2-5-tab">
-<p>Model containing climate variables 17, 18 and 19.</p>
+<p>Model containing climate variables 17, 18, and 19.</p>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>class          : ModelEvaluation 
 n presences    : 5812 
 n absences     : 500 
-AUC            : 0.7715721 
-cor            : 0.3893624 
-max TPR+TNR at : 2.169708 </code></pre>
+AUC            : 0.7538322 
+cor            : 0.3692391 
+max TPR+TNR at : 2.157795 </code></pre>
 </div>
 </div>
 </div>
@@ -413,13 +415,23 @@ max TPR+TNR at : 2.169708 </code></pre>
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="Geodata_assignment_files/figure-html/Plotting%20species%201%20current%20distribution-1.png" class="img-fluid figure-img" width="672"></p>
-<figcaption>Figure 4: Map showing the current distribution of species 1 based on predictions made from a GLM based on climate variables 13, 14, 15, and 16</figcaption>
+<p><img src="Geodata_assignment_files/figure-html/Plot%20species%201%20GLM%20predictions-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>Figure 4: Map showing predicted probabilites of species 1 occurence based on predictions from model 4.</figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>The distribution predicted by the model matches the observed data to a certain extent. The high probabilities of occurence found across the entire East side of North America and along the Western coast, especially moving up into Canada both line up with the two main clusters of Fisher presence shown by the GBIF data. However the model misses the group of fishers which inhabit central Canada. On the Eastern coast the area’s of predicted high probability also extend further south and north than observed data. As model four only includes information on precipitation it is possible adding temperature would restrict the latitudinal range predicted by the model. While the model is able to accurately pick out areas with a high concentration of fishers it shows a two population, East vs West, pattern of distribution while the observed data is more of a continuous band across the centre of the region.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="Geodata_assignment_files/figure-html/Species%201%20Presence%20and%20Absence%20plot-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>Figure 5: Map showing current predicted areas of Presence and Absence for species 1 based on model 4.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The distribution predicted by the model matches the observed data to a certain extent. The high probabilities of occurence found across the entire East side of North America and along the Western coast, especially moving up into Canada both line up with the two main clusters of Fisher presence shown by the GBIF data. However the model mostly misses the group of fishers which inhabit central Canada. On the Eastern coast the area’s of predicted high probability also extend further south and north than observed data. As model four only includes information on precipitation it is possible adding temperature would restrict the latitudinal range predicted by the model. The binary presence absence map predicts the current distribution of fishers to be split into two distinct populations, one larger one occupying most of Eastern Canada and the US and a smaller one running along the West Coast. While these are the two main clusters seen on observed data from GBIF the actual distribution of Fishers appears to run in a continuous band across the continent. This also suggests that factors other than climate, or at least other than those in model 4, are important to consider when predicting fisher distribution.</p>
 </section>
 <section id="species-2-north-american-porcupine" class="level4">
 <h4 class="anchored" data-anchor-id="species-2-north-american-porcupine">Species 2 (North American Porcupine)</h4>
@@ -437,21 +449,21 @@ glm(formula = pa ~ bio1 + bio2 + bio3 + bio4, family = binomial(link = "logit"),
     data = species2_env_pa_data)
 
 Coefficients:
-              Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept) 17.7454530  0.8292687  21.399  &lt; 2e-16 ***
-bio1         0.0937286  0.0127141   7.372 1.68e-13 ***
-bio2         0.7161859  0.0374884  19.104  &lt; 2e-16 ***
-bio3        -0.4091885  0.0171782 -23.820  &lt; 2e-16 ***
-bio4        -0.0105478  0.0005671 -18.601  &lt; 2e-16 ***
+             Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept) 19.354475   0.845817  22.883  &lt; 2e-16 ***
+bio1         0.092340   0.012472   7.404 1.32e-13 ***
+bio2         0.653465   0.035380  18.470  &lt; 2e-16 ***
+bio3        -0.419107   0.016891 -24.813  &lt; 2e-16 ***
+bio4        -0.011098   0.000571 -19.435  &lt; 2e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
-    Null deviance: 4576.4  on 18122  degrees of freedom
-Residual deviance: 3805.3  on 18118  degrees of freedom
-  (4 observations deleted due to missingness)
-AIC: 3815.3
+    Null deviance: 4569.2  on 18121  degrees of freedom
+Residual deviance: 3813.2  on 18117  degrees of freedom
+  (5 observations deleted due to missingness)
+AIC: 3823.2
 
 Number of Fisher Scoring iterations: 7</code></pre>
 </div>
@@ -468,20 +480,20 @@ glm(formula = pa ~ bio5 + bio6 + bio7 + bio8, family = binomial(link = "logit"),
 
 Coefficients:
               Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept)  1.591e+00  4.159e-01   3.826  0.00013 ***
-bio5         2.018e+04  3.895e+04   0.518  0.60436    
-bio6        -2.018e+04  3.895e+04  -0.518  0.60436    
-bio7        -2.018e+04  3.895e+04  -0.518  0.60436    
-bio8        -4.306e-02  8.572e-03  -5.024 5.07e-07 ***
+(Intercept)  1.955e+00  4.326e-01   4.521 6.17e-06 ***
+bio5         6.343e+04  3.928e+04   1.615    0.106    
+bio6        -6.343e+04  3.928e+04  -1.615    0.106    
+bio7        -6.343e+04  3.928e+04  -1.615    0.106    
+bio8        -4.525e-02  8.538e-03  -5.300 1.16e-07 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
-    Null deviance: 4576.4  on 18122  degrees of freedom
-Residual deviance: 4315.7  on 18118  degrees of freedom
-  (4 observations deleted due to missingness)
-AIC: 4325.7
+    Null deviance: 4569.2  on 18121  degrees of freedom
+Residual deviance: 4378.1  on 18117  degrees of freedom
+  (5 observations deleted due to missingness)
+AIC: 4388.1
 
 Number of Fisher Scoring iterations: 7</code></pre>
 </div>
@@ -497,28 +509,28 @@ glm(formula = pa ~ bio9 + bio10 + bio11 + bio12, family = binomial(link = "logit
     data = species2_env_pa_data)
 
 Coefficients:
-              Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept)  2.0434867  0.3895950   5.245 1.56e-07 ***
-bio9        -0.0008436  0.0074104  -0.114 0.909368    
-bio10        0.0567173  0.0172092   3.296 0.000982 ***
-bio11        0.0584096  0.0144245   4.049 5.14e-05 ***
-bio12        0.0011515  0.0001414   8.144 3.83e-16 ***
+             Estimate Std. Error z value Pr(&gt;|z|)    
+(Intercept) 1.7298829  0.3927317   4.405 1.06e-05 ***
+bio9        0.0020425  0.0074304   0.275 0.783408    
+bio10       0.0581516  0.0173469   3.352 0.000801 ***
+bio11       0.0387746  0.0146505   2.647 0.008130 ** 
+bio12       0.0013511  0.0001409   9.591  &lt; 2e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
-    Null deviance: 4576.4  on 18122  degrees of freedom
-Residual deviance: 4280.3  on 18118  degrees of freedom
-  (4 observations deleted due to missingness)
-AIC: 4290.3
+    Null deviance: 4569.2  on 18121  degrees of freedom
+Residual deviance: 4318.6  on 18117  degrees of freedom
+  (5 observations deleted due to missingness)
+AIC: 4328.6
 
-Number of Fisher Scoring iterations: 6</code></pre>
+Number of Fisher Scoring iterations: 7</code></pre>
 </div>
 </div>
 </div>
 <div id="tabset-3-4" class="tab-pane" role="tabpanel" aria-labelledby="tabset-3-4-tab">
-<p>Model containing climate variables 13, 14, 15 and 16.</p>
+<p>Model containing climate variables 13, 14, 15, and 16.</p>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -528,27 +540,27 @@ glm(formula = pa ~ bio13 + bio14 + bio15 + bio16, family = binomial(link = "logi
 
 Coefficients:
              Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept)  4.759644   0.274087  17.365  &lt; 2e-16 ***
-bio13        0.005585   0.007070   0.790    0.429    
-bio14        0.003568   0.004531   0.787    0.431    
-bio15       -0.031327   0.004685  -6.687 2.27e-11 ***
-bio16       -0.002493   0.002436  -1.023    0.306    
+(Intercept)  4.539140   0.274975  16.507  &lt; 2e-16 ***
+bio13        0.020119   0.007670   2.623  0.00872 ** 
+bio14        0.008476   0.004540   1.867  0.06192 .  
+bio15       -0.030231   0.004656  -6.493 8.43e-11 ***
+bio16       -0.007782   0.002614  -2.977  0.00291 ** 
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
-    Null deviance: 4576.4  on 18122  degrees of freedom
-Residual deviance: 4286.5  on 18118  degrees of freedom
-  (4 observations deleted due to missingness)
-AIC: 4296.5
+    Null deviance: 4569.2  on 18121  degrees of freedom
+Residual deviance: 4241.1  on 18117  degrees of freedom
+  (5 observations deleted due to missingness)
+AIC: 4251.1
 
 Number of Fisher Scoring iterations: 7</code></pre>
 </div>
 </div>
 </div>
 <div id="tabset-3-5" class="tab-pane" role="tabpanel" aria-labelledby="tabset-3-5-tab">
-<p>Model containing climate variables 17, 18 and 19.</p>
+<p>Model containing climate variables 17, 18, and 19.</p>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -558,19 +570,19 @@ glm(formula = pa ~ bio17 + bio18 + bio19, family = binomial(link = "logit"),
 
 Coefficients:
               Estimate Std. Error z value Pr(&gt;|z|)    
-(Intercept)  3.4242331  0.1221054  28.043  &lt; 2e-16 ***
-bio17        0.0144135  0.0009603  15.010  &lt; 2e-16 ***
-bio18       -0.0060207  0.0006205  -9.704  &lt; 2e-16 ***
-bio19       -0.0018491  0.0004525  -4.086 4.39e-05 ***
+(Intercept)  3.3560634  0.1253574  26.772  &lt; 2e-16 ***
+bio17        0.0158805  0.0009937  15.981  &lt; 2e-16 ***
+bio18       -0.0062160  0.0006553  -9.485  &lt; 2e-16 ***
+bio19       -0.0020855  0.0004343  -4.802 1.57e-06 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 (Dispersion parameter for binomial family taken to be 1)
 
-    Null deviance: 4576.4  on 18122  degrees of freedom
-Residual deviance: 4291.0  on 18119  degrees of freedom
-  (4 observations deleted due to missingness)
-AIC: 4299
+    Null deviance: 4569.2  on 18121  degrees of freedom
+Residual deviance: 4239.7  on 18118  degrees of freedom
+  (5 observations deleted due to missingness)
+AIC: 4247.7
 
 Number of Fisher Scoring iterations: 7</code></pre>
 </div>
@@ -578,20 +590,20 @@ Number of Fisher Scoring iterations: 7</code></pre>
 </div>
 </div>
 </div>
-<p>Figure 5: Tables showing summary statistics for each model of climate distribution on species 2 distribution.</p>
+<p>Figure 6: Tables showing summary statistics for each generalised linear model of the effect of climate on species 2 distribution.</p>
 <p>For the North American Porcupine only three of the models are able to significantly predict occurrence, models 1, 4, 5. Although the predictive power of model 4 may mostly rely on just one variable, variable 15 (precipitation seasonality).</p>
 <p>To compare how well each model predicts the presence/absence of the North American Porcupine an Akaike Information Criterion test was performed.</p>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>              df      AIC
-species2_glm1  5 3815.343
-species2_glm2  5 4325.693
-species2_glm3  5 4290.320
-species2_glm4  5 4296.488
-species2_glm5  4 4298.966</code></pre>
+species2_glm1  5 3823.151
+species2_glm2  5 4388.149
+species2_glm3  5 4328.638
+species2_glm4  5 4251.094
+species2_glm5  4 4247.674</code></pre>
 </div>
 </div>
-<p>Figure 6: Table comparing the AIC values of the models for species 2.</p>
+<p>Figure 7: Table comparing the AIC values of the five models for species 2.</p>
 <p>The model with the lowest AIC value is model 1, which indicates annual mean temperature, mean diurnal range, isothermality and temperature seasonality are all important factors in determining porcupine distribution. However as the other two models containing primarily variables linked to temperature had very limited predictive ability the role. of precipitation cannot fully be discounted as both models 4 and 5 had lower AICS than models 2 and 4. In general all of the models for species 2 had higher AIC’s than the models for species 1 which suggests that climate is not as important in controlling the range of porcupines as it is for fishers.</p>
 <p><u>Evaluating AUC and correlation of models:</u></p>
 <p>The ability of a models predictions to match the observed data can also be evaluated by looking at the area under the curve (AUC) and correlation (cor) values.</p>
@@ -604,10 +616,10 @@ species2_glm5  4 4298.966</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>class          : ModelEvaluation 
 n presences    : 17623 
-n absences     : 500 
-AUC            : 0.6931716 
-cor            : 0.2997251 
-max TPR+TNR at : 3.509633 </code></pre>
+n absences     : 499 
+AUC            : 0.7084946 
+cor            : 0.2946213 
+max TPR+TNR at : 3.07035 </code></pre>
 </div>
 </div>
 </div>
@@ -617,10 +629,10 @@ max TPR+TNR at : 3.509633 </code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>class          : ModelEvaluation 
 n presences    : 17623 
-n absences     : 500 
-AUC            : 0.6194445 
-cor            : 0.1217853 
-max TPR+TNR at : 2.827438 </code></pre>
+n absences     : 499 
+AUC            : 0.6024606 
+cor            : 0.1038597 
+max TPR+TNR at : 2.917048 </code></pre>
 </div>
 </div>
 </div>
@@ -630,42 +642,42 @@ max TPR+TNR at : 2.827438 </code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>class          : ModelEvaluation 
 n presences    : 17623 
-n absences     : 500 
-AUC            : 0.6346751 
-cor            : 0.1355991 
-max TPR+TNR at : 2.90342 </code></pre>
+n absences     : 499 
+AUC            : 0.6460043 
+cor            : 0.1236925 
+max TPR+TNR at : 3.253467 </code></pre>
 </div>
 </div>
 </div>
 <div id="tabset-4-4" class="tab-pane" role="tabpanel" aria-labelledby="tabset-4-4-tab">
-<p>Model containing climate variables 13, 14, 15 and 16.</p>
+<p>Model containing climate variables 13, 14, 15, and 16.</p>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>class          : ModelEvaluation 
 n presences    : 17623 
-n absences     : 500 
-AUC            : 0.7145985 
-cor            : 0.135554 
-max TPR+TNR at : 4.149287 </code></pre>
+n absences     : 499 
+AUC            : 0.7276885 
+cor            : 0.1435838 
+max TPR+TNR at : 3.933495 </code></pre>
 </div>
 </div>
 </div>
 <div id="tabset-4-5" class="tab-pane" role="tabpanel" aria-labelledby="tabset-4-5-tab">
-<p>Model containing climate variables 17, 18 and 19.</p>
+<p>Model containing climate variables 17, 18, and 19.</p>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>class          : ModelEvaluation 
 n presences    : 17623 
-n absences     : 500 
-AUC            : 0.7043114 
-cor            : 0.1265078 
-max TPR+TNR at : 3.308458 </code></pre>
+n absences     : 499 
+AUC            : 0.7275213 
+cor            : 0.1341399 
+max TPR+TNR at : 3.860463 </code></pre>
 </div>
 </div>
 </div>
 </div>
 </div>
-<p>Figure 7: Tables showing the AUC and cor values of each model for species 2.</p>
+<p>Figure 8: Tables showing the AUC and cor values of each model for species 2.</p>
 <p>The results of the evaluation of AUC and cor values are consistent with the AIC values of the models, with model 1 showing the highest AUC and cor values. However the correlation of model one was around 0.3. Suggesting that even though it is the best model it is still quite poor at predicting porcupine distribution. Strengthening the argument that climate is not the main factor determining the range of the North American Porcupine. As it is the best model created in this analysis at explaining</p>
 <p><u>Mapping current distribution:</u></p>
 <div class="cell" data-layout-align="center">
@@ -673,56 +685,197 @@ max TPR+TNR at : 3.308458 </code></pre>
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
 <p><img src="Geodata_assignment_files/figure-html/Plotting%20species%202%20current%20distribution-1.png" class="img-fluid figure-img" width="672"></p>
-<figcaption>Figure 8: Map showing the current distribution of Species 2 based on predictions made from a GLM based on climate variables 1, 2, 3, and 4</figcaption>
+<figcaption>Figure 9: Map showing predicted probabilites of species 2 occurence based on predictions from model 1.</figcaption>
 </figure>
 </div>
 </div>
 </div>
-<p>In general the observed data from the GBIF dataset matches with areas predicted by the model to have a high chance of occurence. However the model slightly under estimates the latitudinal range of the porcupine with several presence coordinates falling both above and below the main region of predicted occupation. The model also predicts that porcupines would be expected to be found in south-eastern America, however they are mostly absent from this region in the observed data. Compared to fishers porcupines have a much large range both in the predicted and observed datasets, being found throughout most of the region and most areas where fishers are also found.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="Geodata_assignment_files/figure-html/Species%202%20Presence%20and%20Absence%20plot-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>Figure 10: Map showing current predicted areas of Presence and Absence for species 2 based on model 1.</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>In general the observed data from the GBIF dataset matches with areas predicted by the model to have a high chance of occurence. However the model slightly under estimates the latitudinal range of the porcupine with several presence coordinates falling both above and below the main region of predicted occupation. The binary presence absence map does not include the majority of the large cluster of observations found in central and western America. This model of current distribution actually significantly underestimates the range of porcupines. Similarly to the fisher data it shows two completely separate populations despite the real life observations suggesting otherwise. According to both maps we would expect the climate conditions in south-eastern America to support porcupine habitation. However very few based on the GBIF data there are very few porcupines here potentially this area is lacking other important features such as corrected habitat type or an important food plant.</p>
+<p>Overall the current distributions of fishers and porcupines are fairly similar, therefore we would expect a high degree of overlap.</p>
 </section>
 </section>
 <section id="distribution-overlap" class="level2">
 <h2 class="anchored" data-anchor-id="distribution-overlap">Distribution Overlap</h2>
 <section id="plotting" class="level4">
 <h4 class="anchored" data-anchor-id="plotting">Plotting</h4>
+<p>Although simply from visually observing the maps of current distribution for both species it is clear they have a large degree of overlap it is still useful to plot maps of the overlap to confirm this. To create fig 11 the results of the predictions for current distribution of each species were combined into one dataset. In the original prediction models the chance the the species will occur in an area is ranked on a scale of 0-1 with higher numbers indicating a higher chance the species will be found there. By combining these datasets in a summative way it creates a dataframe where values around 1 indicate only one species is found in the area and values approaching 2 show that both species are likely to occur</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Creating combined datasets code</summary>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>combined <span class="ot">&lt;-</span> <span class="fu">mosaic</span>(species1_pred, species2_pred, <span class="at">fun =</span> <span class="st">"sum"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="Geodata_assignment_files/figure-html/Plotting%20predicted%20probability%20of%20both%20species%20occuring%20between%20the%20current%20distributions-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>Figure 11: Map showing the probability that between 0 and 1 species occur in a certain area, yellow represents high likelihood of both species occuring and therefore areas of overlap</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The individual thresholds for presence of species 1 and 2 were added together to create a threshold above which you would expect both species to occur, therefore allowing us to predict areas of overlapping distribution.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="Geodata_assignment_files/figure-html/Plot%20sympatric%20and%20non-sympatric%20areas-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>Figure 12: Map showing areas of sympatry between species 1 and 2</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The majority of sympatric areas predicted by the models occur in the USA, particularly the Eastern side of it. There is also a small amount of overlap predicted reaching up along the south eastern and south western coast of Canada.</p>
 </section>
 <section id="metrics" class="level4">
 <h4 class="anchored" data-anchor-id="metrics">Metrics</h4>
+<p>The degree of overlap can be calculated by finding the sum of predicted localities at which sympatry occurs, based on the threshold created to make fig 12, a dataset combining coordinates from both species and the spatial data mapping occurence of both species, from figure 11. This is then expressed as a proportion of the total coordinates for both species. This will allows the metric to be compared across different species pairs without being affected by the number of coordinates available for each species. See code below for how to calculate. Therefore the final metric of degree of overlap is expressed as the proportion of total coordinates for each species which are above the 2 species occurence threshold.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Degree of Overlap Calculation</summary>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>overlap_localities <span class="ot">&lt;-</span> <span class="fu">extract</span>(combined <span class="sc">&gt;=</span> (species2_tr<span class="sc">+</span>species1_tr), combined_coords) <span class="co">#Extracts which localities within the combined coordinates of both species</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>overlap_metric <span class="ot">&lt;-</span> (<span class="fu">sum</span>(overlap_localities <span class="sc">==</span> <span class="dv">1</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))<span class="sc">/</span><span class="fu">length</span>(combined_coords<span class="sc">$</span>lon) <span class="co">#calculates the total sum of localities and divides them by the total number of coordinates for both species. </span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.5911942</code></pre>
+</div>
+</div>
+<p>Just under 60% of localities for Fishers and North American Porcupines are expected to overlap.</p>
 </section>
 </section>
 <section id="modelling-interspecies-distribution-dependence" class="level2">
 <h2 class="anchored" data-anchor-id="modelling-interspecies-distribution-dependence">Modelling Interspecies Distribution Dependence</h2>
+<p>To test whether there is an effect of species</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>adfshjfahjkafkhj <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">lon =</span> species2_combined_coords<span class="sc">$</span>lon, <span class="at">lat =</span> species2_combined_coords<span class="sc">$</span>lat, species2_pa_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
 </section>
 <section id="future-distribution-prediction" class="level2">
 <h2 class="anchored" data-anchor-id="future-distribution-prediction">Future Distribution Prediction</h2>
 <p>To predict the future distribution of species future climate projections are required to provide data to run the previously created models on. The projection data used here was from CMIP5 (Coupled Model Intercomparison Project Phase 5), which is available here <a href="https://aims2.llnl.gov/search" class="uri">https://aims2.llnl.gov/search</a>.</p>
 <section id="species-1" class="level4">
 <h4 class="anchored" data-anchor-id="species-1">Species 1</h4>
+<p>Future climate predictions are based off model 4 as this was the best at predicting current distribution for fishers. Future predictions were calculated by running a prediction based of the original model 4 but using the new projection climate data as opposed to the current climate data.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Plots results side by side</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="fu">par</span>(<span class="at">mfrow =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>))</span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Present distribution</span></span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(species1_pred, <span class="at">main =</span> <span class="st">"Present Distribution of Species 1"</span>)</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(world_map, <span class="at">add =</span> <span class="cn">TRUE</span>, <span class="at">border =</span> <span class="st">"darkgrey"</span>)</span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Future distribution</span></span>
-<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(species1_future_pred, <span class="at">main =</span> <span class="st">"Future Distribution of Species1"</span>)</span>
-<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(world_map, <span class="at">add =</span> <span class="cn">TRUE</span>, <span class="at">border =</span> <span class="st">"darkgrey"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
-<div>
+<div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="Geodata_assignment_files/figure-html/Plotting%20future%20distributions-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="Geodata_assignment_files/figure-html/Plotting%20future%20distributions%20for%20species%201-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>Figure 13: Maps comparing the Present GLM Occurences and Distributions of Species 1 with those based on Climate Projections for 2060-2081</figcaption>
 </figure>
 </div>
 </div>
 </div>
+<p>There is very little, if any change in the future distribution of fishers linked to climate change based on these models. There is a slight loss of connectivity within the western population. On the other hand the Eastern population shows a slight range expansion northwards into Quebec. Overall fishers are predicted by these models to be able to retain most of their current distribution, with potential for a small range expansion northwards in certain areas.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Range change metrics:"</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Current suitable localities: 5128"</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Future suitable localities: 5050"</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Number of new suitable localities (expansion): 85"</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Number of lost suitable localities (contraction): 93"</code></pre>
+</div>
+</div>
+<p>As predicted from looking at the maps of distribution changes there is very little difference in the current and future predicted range of fishers. The species undergoes both range expansions and contractions, with very small net contraction of range expected in the future.</p>
 </section>
 <section id="species-2" class="level4">
 <h4 class="anchored" data-anchor-id="species-2">Species 2</h4>
+<p>Future climate predictions are based off model 1 as this was the best at predicting current distribution for Porcupines. Future predictions were calculated in the same way as for species 1.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="Geodata_assignment_files/figure-html/Plotting%20future%20distributions%20of%20species%202-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>Figure 14: Maps comparing the present GLM Occurences and Distributions of Species 2 with those based on Climate Projections for 2060-2081</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The range of North American Porcupines is expected in increase significantly, with large expansions both North and South of the current range. Based on climate data alone is appears that climate change could allow porcupines to colonise all of the United States as well as most regions of Canada except the centre. However this increase in range would include a shift in habitat from grasslands and temperate forest towards boreal forests and tundra in the North and tropical forests in the South (NABCI, 2016). Therefore in reality if climate changes are not accompanied by an expansion of the preferred habitat of porcupines then they might not be able to fully track the climate changes, limiting the observed range expansion. However similar to the fishers these results suggest that under current predictions of climate change porcupines would be expected to at a minimum maintain their current distribution.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>species2_localities <span class="ot">&lt;-</span> <span class="fu">extract</span>(species2_pred <span class="sc">&gt;=</span> species2_tr, species2_coords)[, <span class="sc">-</span><span class="dv">1</span>]</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>species2_current_range <span class="ot">&lt;-</span> <span class="fu">sum</span>(species2_localities, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>species2_future_localities <span class="ot">&lt;-</span> <span class="fu">extract</span>(species2_future_pred <span class="sc">&gt;=</span> species2_tr, species2_coords)[, <span class="sc">-</span><span class="dv">1</span>]</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>species2_future_range <span class="ot">&lt;-</span> <span class="fu">sum</span>(species2_future_localities, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>species2_range_expansion <span class="ot">&lt;-</span> <span class="fu">sum</span>((species2_localities <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">&amp;</span> (species2_future_localities <span class="sc">==</span> <span class="dv">1</span>), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>species2_range_contraction <span class="ot">&lt;-</span> <span class="fu">sum</span>((species2_localities <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">&amp;</span> (species2_future_localities <span class="sc">==</span> <span class="dv">0</span>), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="st">"Range change metrics:"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Range change metrics:"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Current suitable localities:"</span>, species2_current_range))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Current suitable localities: 9336"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Future suitable localities:"</span>, species2_future_range))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Future suitable localities: 16551"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Number of new suitable localities (expansion):"</span>, species2_range_expansion))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Number of new suitable localities (expansion): 7971"</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Number of lost suitable localities (contraction):"</span>, species2_range_contraction))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] "Number of lost suitable localities (contraction): 0"</code></pre>
+</div>
+</div>
+<p>As shown by the maps in fig 14 there is a large increase in predicted distribution of the North American Porcupine,</p>
 </section>
 <section id="degree-of-overlap" class="level4">
 <h4 class="anchored" data-anchor-id="degree-of-overlap">Degree of Overlap</h4>
+<p>As the range of each individual species shifts the degree of overlap between the two species is also expected to change.</p>
+<div class="cell">
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="Geodata_assignment_files/figure-html/Plotting%20future%20degree%20of%20overlap-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>Figure 15: Maps comparing the present GLM Occurence overlap and Distributions of Overlap with those based on Climate Projections for 2060-2081</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p>The maps above show that the overlap in distribution between Fishers and North American Porcupines is expected to increase in the future. In particular sympatric area’s in the future are expected to expand up the East coast of Canada, where currently they are mostly confined to the US. There are also expected to gain some new areas of overlap in the mid-western US. This increase in overlap is probably mostly due to the expansion of porcupines northward into Canada and their predicted future colonisation of the entire US as fishers have very little change in distribution between the present and future conditions. The GLM Occurence models as show that as well as the area in which they overlap increasing the general probability that both species co-occur across the region also increases.</p>
+<div class="cell">
+<details class="code-fold">
+<summary>Degree of Overlap Calculation</summary>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>future_overlap_localities <span class="ot">&lt;-</span> <span class="fu">extract</span>(combined_future <span class="sc">&gt;</span> (species2_tr<span class="sc">+</span>species1_tr), combined_coords)</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>future_overlap_metric <span class="ot">&lt;-</span> (<span class="fu">sum</span>(future_overlap_localities <span class="sc">==</span> <span class="dv">1</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))<span class="sc">/</span><span class="fu">length</span>(combined_coords<span class="sc">$</span>lon)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.6593285</code></pre>
+</div>
+</div>
+<p>In the future the degree of overlap is predicted to be around 66% which is large than the metric calculated for current distributions. This matches with the maps of how areas of sympatry will change seen in fig 15, which also predict an increase in the amount of locations where the two species overlap.</p>
 </section>
 </section>
 <section id="bibliography" class="level2">
