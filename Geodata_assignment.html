@@ -759,9 +759,55 @@ max TPR+TNR at : 3.860463 </code></pre>
 </section>
 <section id="modelling-interspecies-distribution-dependence" class="level2">
 <h2 class="anchored" data-anchor-id="modelling-interspecies-distribution-dependence">Modelling Interspecies Distribution Dependence</h2>
-<p>To test whether there is an effect of species</p>
+<p>To test whether there is interspecies distribution dependence of species 1 on species 2 firstly you have to calculate whether species 2 occurs at the presence and absence coordinates used for species 1. Which was done using the code below.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>adfshjfahjkafkhj <span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="at">lon =</span> species2_combined_coords<span class="sc">$</span>lon, <span class="at">lat =</span> species2_combined_coords<span class="sc">$</span>lat, species2_pa_data)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<details class="code-fold">
+<summary>Calculating presence/absence of species 2 and species 1 coordinates</summary>
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>species2_occurence_at_species1<span class="ot">&lt;-</span> <span class="fu">extract</span>(species2_pred, species1_combined_coords)</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(species2_occurence_at_species1) <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"ID"</span>, <span class="st">"pa"</span>) <span class="co">#extracts the glm predicted chance of occurence for species 2 at each of the coordinates used to model species 1 presence and absence. </span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>species2_pa_at_species1<span class="ot">&lt;-</span> <span class="fu">data.frame</span>(<span class="fu">ifelse</span>(species2_occurence_at_species1<span class="sc">$</span>pa <span class="sc">&gt;</span> species2_tr, (<span class="fu">paste</span>(<span class="dv">1</span>)), (<span class="fu">paste</span>(<span class="dv">0</span>)))) <span class="co"># Converts the chances of occurrence into binary values with 0 showing absence and 1 showing presence based on the threshold for presence species2_tr calculated earlier. </span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(species2_pa_at_species1) <span class="ot">&lt;-</span> <span class="st">"species2_pa"</span> </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<p>As shown in the code above the species 2 occurence values were extracted from predications made based on a model which included climate variables. Specifically variabesl 1, 2, 3 and 4 as model 1 was used to make the current distribution predictions for species 2. Therefore even when just creating a model for the regression of species 1 pa against extracted species 2 pa climate values are indirectly involved as they contributed to whether species 2 was considered present or absent at each location. However models to test whether climate variables have an interaction on the ability of species 2 to predict the presence of species 1 were also created.</p>
+<p>6 Models were created, a null (reduced) model, a simple linear model looking at the correlation between species 1 and 2 distributions, and four models considering the effect of various climate variables in addition to species 2 on species 1. Two different sets of climate variables were chosen and for each set a no interaction and a with interaction (full) model were created. The sets of climate variables used were variables 1, 2, 3, and 4, and variables 13, 14, 15, and 16. These were chosen as they are the variables groups known to be most important in determining the distributions of species 2 and 1 respectively. Therefore they are the most likely to impact the relationship between species 1 and 2.</p>
+<p>To see if there was a significant difference in the ability of models to fit the distribution of species chi-squared tests were performed. A chi-squared was used instead of an ANOVA as species distributions are binary data and therefore binomial glm’s were used. Chi-squared is considered more appropriate to use on binomial models than an ANOVA.</p>
+<div class="cell">
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
+Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>                      df      AIC
+null_model             1 3496.903
+no_climate_model       2 3410.293
+no_interaction_model1  6 2927.049
+interaction_model1    32 1718.044
+no_interaction_model2  6 2640.887
+interaction_model2    32 1718.044</code></pre>
+</div>
+</div>
+<p>Based on preliminary analysis of the AIC values it appears that only including species 2 has very little effect on the fit of the model. It is only when climate variables are considered, whether as interactions or not, that the fit begins to drastically improve. This could suggest that climate has a stronger effect on fisher distribution than porcupines.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(no_climate_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Deviance Table
+
+Model: binomial, link: logit
+
+Response: pa
+
+Terms added sequentially (first to last)
+
+            Df Deviance Resid. Df Resid. Dev  Pr(&gt;Chi)    
+NULL                         6311     3494.9              
+species2_pa  1    88.61      6310     3406.3 &lt; 2.2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
 </div>
 </section>
 <section id="future-distribution-prediction" class="level2">
@@ -815,33 +861,23 @@ max TPR+TNR at : 3.860463 </code></pre>
 </div>
 <p>The range of North American Porcupines is expected in increase significantly, with large expansions both North and South of the current range. Based on climate data alone is appears that climate change could allow porcupines to colonise all of the United States as well as most regions of Canada except the centre. However this increase in range would include a shift in habitat from grasslands and temperate forest towards boreal forests and tundra in the North and tropical forests in the South (NABCI, 2016). Therefore in reality if climate changes are not accompanied by an expansion of the preferred habitat of porcupines then they might not be able to fully track the climate changes, limiting the observed range expansion. However similar to the fishers these results suggest that under current predictions of climate change porcupines would be expected to at a minimum maintain their current distribution.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>species2_localities <span class="ot">&lt;-</span> <span class="fu">extract</span>(species2_pred <span class="sc">&gt;=</span> species2_tr, species2_coords)[, <span class="sc">-</span><span class="dv">1</span>]</span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>species2_current_range <span class="ot">&lt;-</span> <span class="fu">sum</span>(species2_localities, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>species2_future_localities <span class="ot">&lt;-</span> <span class="fu">extract</span>(species2_future_pred <span class="sc">&gt;=</span> species2_tr, species2_coords)[, <span class="sc">-</span><span class="dv">1</span>]</span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>species2_future_range <span class="ot">&lt;-</span> <span class="fu">sum</span>(species2_future_localities, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>species2_range_expansion <span class="ot">&lt;-</span> <span class="fu">sum</span>((species2_localities <span class="sc">==</span> <span class="dv">0</span>) <span class="sc">&amp;</span> (species2_future_localities <span class="sc">==</span> <span class="dv">1</span>), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a>species2_range_contraction <span class="ot">&lt;-</span> <span class="fu">sum</span>((species2_localities <span class="sc">==</span> <span class="dv">1</span>) <span class="sc">&amp;</span> (species2_future_localities <span class="sc">==</span> <span class="dv">0</span>), <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="st">"Range change metrics:"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="st">"Range change metrics:"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Range change metrics:"</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Current suitable localities:"</span>, species2_current_range))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Current suitable localities:"</span>, species2_current_range))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Current suitable localities: 9336"</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Future suitable localities:"</span>, species2_future_range))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Future suitable localities:"</span>, species2_future_range))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Future suitable localities: 16551"</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Number of new suitable localities (expansion):"</span>, species2_range_expansion))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Number of new suitable localities (expansion):"</span>, species2_range_expansion))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Number of new suitable localities (expansion): 7971"</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Number of lost suitable localities (contraction):"</span>, species2_range_contraction))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Number of lost suitable localities (contraction):"</span>, species2_range_contraction))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Number of lost suitable localities (contraction): 0"</code></pre>
 </div>
@@ -862,14 +898,6 @@ max TPR+TNR at : 3.860463 </code></pre>
 </div>
 </div>
 <p>The maps above show that the overlap in distribution between Fishers and North American Porcupines is expected to increase in the future. In particular sympatric area’s in the future are expected to expand up the East coast of Canada, where currently they are mostly confined to the US. There are also expected to gain some new areas of overlap in the mid-western US. This increase in overlap is probably mostly due to the expansion of porcupines northward into Canada and their predicted future colonisation of the entire US as fishers have very little change in distribution between the present and future conditions. The GLM Occurence models as show that as well as the area in which they overlap increasing the general probability that both species co-occur across the region also increases.</p>
-<div class="cell">
-<details class="code-fold">
-<summary>Degree of Overlap Calculation</summary>
-<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>future_overlap_localities <span class="ot">&lt;-</span> <span class="fu">extract</span>(combined_future <span class="sc">&gt;</span> (species2_tr<span class="sc">+</span>species1_tr), combined_coords)</span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>future_overlap_metric <span class="ot">&lt;-</span> (<span class="fu">sum</span>(future_overlap_localities <span class="sc">==</span> <span class="dv">1</span>, <span class="at">na.rm =</span> <span class="cn">TRUE</span>))<span class="sc">/</span><span class="fu">length</span>(combined_coords<span class="sc">$</span>lon)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-</div>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 0.6593285</code></pre>

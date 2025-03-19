@@ -793,12 +793,112 @@ Just under 60% of localities for Fishers and North American Porcupines are expec
 
 ## Modelling Interspecies Distribution Dependence
 
-To test whether there is an effect of species 
+To test whether there is interspecies distribution dependence of species 1 on species 2 firstly you have to calculate whether species 2 occurs at the presence and absence coordinates used for species 1. Which was done using the code below.
 
-```{r}
-adfshjfahjkafkhj <- data.frame(lon = species2_combined_coords$lon, lat = species2_combined_coords$lat, species2_pa_data)
+```{r Calculating species 2 probability of occurence at species 1 coordinates}
+#| code-fold: true
+#| code-summary: "Calculating presence/absence of species 2 and species 1 coordinates"
+
+species2_occurence_at_species1<- extract(species2_pred, species1_combined_coords)
+colnames(species2_occurence_at_species1) <- c("ID", "pa") #extracts the glm predicted chance of occurence for species 2 at each of the coordinates used to model species 1 presence and absence. 
+
+species2_pa_at_species1<- data.frame(ifelse(species2_occurence_at_species1$pa > species2_tr, (paste(1)), (paste(0)))) # Converts the chances of occurrence into binary values with 0 showing absence and 1 showing presence based on the threshold for presence species2_tr calculated earlier. 
+colnames(species2_pa_at_species1) <- "species2_pa" 
 ```
 
+
+```{r Adding species 2 presence/absence to the species1_env_pa_data datset}
+#| echo: false
+
+species1_env_pa_data$species2_pa = species2_pa_at_species1$species2_pa
+```
+
+As shown in the code above the species 2 occurence values were extracted from predications made based on a model which included climate variables. Specifically variabesl 1, 2, 3 and 4 as model 1 was used to make the current distribution predictions for species 2. Therefore even when just creating a model for the regression of species 1 pa against extracted species 2 pa climate values are indirectly involved as they contributed to whether species 2 was considered present or absent at each location. However models to test whether climate variables have an interaction on the ability of species 2 to predict the presence of species 1 were also created. 
+
+6 Models were created, a null (reduced) model, a simple linear model looking at the correlation between species 1 and 2 distributions, and four models considering the effect of various climate variables in addition to species 2 on species 1. Two different sets of climate variables were chosen and for each set a no interaction and a with interaction (full) model were created. The sets of climate variables used were variables 1, 2, 3, and 4, and variables 13, 14, 15, and 16. These were chosen as they are the variables groups known to be most important in determining the distributions of species 2 and 1 respectively. Therefore they are the most likely to impact the relationship between species 1 and 2. 
+
+To see if there was a significant difference in the ability of models to fit the distribution of species chi-squared tests were performed. A chi-squared was used instead of an ANOVA as species distributions are binary data and therefore binomial glm's were used. Chi-squared is considered more appropriate to use on binomial models than an ANOVA. 
+
+```{r Models}
+#| echo: FALSE
+#| warning: false
+#glm is used for all of the models here as the lm function assumes data is normally distributed, however as this is binary data the distribution is actually binomial. glm allows you to specify what sort of distribution your data has, therefore allowing you to break the assumption of normality. 
+
+#IF RE-RUNNING WITH NEW SPECIES CHANGE THE CLIMATE VARIABLES TO THOSE MOST APPROPRIATE FOR YOUR CHOSEN SPECIES.
+
+#Reduced (null) Model
+null_model <- glm(pa ~ 1,  family = binomial(link = "logit"), data = species1_env_pa_data)
+
+#Effect of species 2 on species 1 distribution
+no_climate_model <- glm(pa ~ species2_pa, family = binomial(link = "logit"), data = species1_env_pa_data)
+
+# Models for climate variables 1, 2, 3, and 4
+no_interaction_model1 <- glm(pa ~ species2_pa + bio1 + bio2 + bio3 + bio4, family = binomial(link = "logit"), data = species1_env_pa_data)
+
+interaction_model1 <- glm(pa ~ species2_pa * bio1 * bio2 * bio3 * bio4, family = binomial(link = "logit"), data = species1_env_pa_data)
+
+#Models for climate variables 13, 14, 15, and 16
+no_interaction_model2 <- glm(pa ~ species2_pa + bio13 + bio14 + bio15 + bio16, family = binomial(link = "logit"), data = species1_env_pa_data)
+
+interaction_model2 <- glm(pa ~ species2_pa * bio1 * bio2 * bio3 * bio4, family = binomial(link = "logit"), data = species1_env_pa_data)
+
+
+```
+
+```{r Comparing AICs of linear models}
+#| echo: false
+#| fig-cap: "Figure 13: Table comparing the AIC's of various models for the effect of species 2 and climate on species 1"
+AIC(null_model, no_climate_model, no_interaction_model1, interaction_model1, no_interaction_model2, interaction_model2)
+```
+
+Based on preliminary analysis of the AIC values it appears that only including species 2 has very little effect on the fit of the model. It is only when climate variables are considered, whether as interactions or not, that the fit begins to drastically improve. This could suggest that climate has a stronger effect on fisher distribution than porcupines. 
+
+::: panel-tabset
+
+###### Species Effect
+
+```{r}
+#| echo: false
+anova(null_model, no_climate_model, test = "Chisq")
+```
+###### Species vs climate 1
+
+```{r}
+#| echo: false
+anova(no_climate_model, no_interaction_model2, test = "Chisq")
+```
+###### Species and Climate interaction 1
+
+```{r}
+#| echo: false
+anova(no_interaction_model1, interaction_model1, test = "Chisq")
+```
+###### Species vs CLimate 2
+
+```{r}
+#| echo: false
+anova(no_climate_model, no_interaction_model2, test = "Chisq")
+```
+###### Species and CLimate Interaction 2
+
+```{r}
+#| echo: false
+anova(no_interaction_model2, interaction_model2,test = "Chisq")
+```
+:::
+
+Figure 14: Tables showing the results of Chi-squared tests between pairs of models for the effect of species 2 on species 1
+
+The statistical analyses above show that Porcupine distribution does have an affect on Fishers as the species only model did perform significantly better when compared to the null model. However both of the no-interaction climate models were significantly better at explaining Fisher distribution than the model just containing species suggesting that climate has a much larger affect on them than Porcupines. However adding climate variables as interactions also improved the fit of the model to fisher distribution, suggesting that porcupines can affect the distribution of Fishers but it is heavily mediated by climate conditions.
+
+As these results seemed to suggest that climate is the main factor influencing fisher distribution I decided to compare whether removing species from no-interaction models actually had any significant effects. Model 4 from figure 1 is the same as the no interaction model for the second set of climate variables therefore these models were compared. 
+
+```{r}
+#| echo: false
+#IGNORE IF RE-RUNNING WITH A DIFFERENT PAIR OF SPECIES, THIS IS SPECIFIC TO THE RESULTS OF MY ANALYSIS
+anova(species1_glm4, no_interaction_model2, test = "Chisq")
+```
+Although small there was a significant effect of removing Porcupines as a variable. This indicates that there is a small amount of interspecies dependence even when climate variables are also being considered. Due to the high degree of overlap between the species calculated earlier this likely represents weak positive correlation between the two species. However as climate is by far the more influential variable does not neccessarily suggest that fishers have a dependence on porcupines to inhabit a region. It is likely this could instead reflect overlap in prefered conditions between the species. 
 
 ## Future Distribution Prediction
 
@@ -926,6 +1026,7 @@ legend(x = -160, y = 45, c("Absent","Present"), bty = "n", pch = 22, pt.bg = c("
 The range of North American Porcupines is expected in increase significantly, with large expansions both North and South of the current range. Based on climate data alone is appears that climate change could allow porcupines to colonise all of the United States as well as most regions of Canada except the centre. However this increase in range would include a shift in habitat from grasslands and temperate forest towards boreal forests and tundra in the North and tropical forests in the South (NABCI, 2016). Therefore in reality if climate changes are not accompanied by an expansion of the preferred habitat of porcupines then they might not be able to fully track the climate changes, limiting the observed range expansion. However similar to the fishers these results suggest that under current predictions of climate change porcupines would be expected to at a minimum maintain their current distribution. 
 
 ```{r Calculating changes in range for species 2}
+#| echo: false
 species2_localities <- extract(species2_pred >= species2_tr, species2_coords)[, -1]
 species2_current_range <- sum(species2_localities, na.rm = TRUE)
 
@@ -984,8 +1085,7 @@ legend(x = -166, y = 45, c("Non-Sympatric","Sympatric"), bty = "n", pch = 22, pt
 The maps above show that the overlap in distribution between Fishers and North American Porcupines is expected to increase in the future. In particular sympatric area's in the future are expected to expand up the East coast of Canada, where currently they are mostly confined to the US. There are also expected to gain some new areas of overlap in the mid-western US. This increase in overlap is probably mostly due to the expansion of porcupines northward into Canada and their predicted future colonisation of the entire US as fishers have very little change in distribution between the present and future conditions. The GLM Occurence models as show that as well as the area in which they overlap increasing the general probability that both species co-occur across the region also increases. 
 
 ```{r Calculating degree of future overlap}
-#| code-fold: true
-#| code-summary: "Degree of Overlap Calculation"
+#| echo: false
 future_overlap_localities <- extract(combined_future > (species2_tr+species1_tr), combined_coords)
 
 future_overlap_metric <- (sum(future_overlap_localities == 1, na.rm = TRUE))/length(combined_coords$lon)
