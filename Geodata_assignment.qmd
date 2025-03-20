@@ -11,7 +11,11 @@ editor: visual
 
 ## Introduction
 
-The two species I have chosen to look at are the Fisher (*Pekania pennanti*) and the North American Porcupine (*Erethizon dorsatum*). Fishers and Porcupines have a predator-prey relationship, therefore I expect their ranges to have limited overlap.
+The two species I have chosen to look at are the Fisher (*Pekania pennanti*) and the North American Porcupine (*Erethizon dorsatum*). Although adult porcupines are generally at very low risk of predation, they are susceptible to a small number of specialist predators, which includes Fishers. Foraging and movement patterns of porcupines are known to be strongly affected by predation risk even when under high levels of nutritional stress (Pokallus & Pauli, 2015). Porcupines and Fishers have been shown to exhibit predator prey dynamics with the presence of Fishers causing declines in porcupine populations in certain areas of range overlap (Earle & Kramm, 1982). Therefore it is possible that porcupines will try to avoid areas where Fishers are present. However as porcupines are believed to be the preferred prey of Fishers (Earle & Kramm, 1982) it is also possible that Fisher presence is dependent upon the presence of Porcupines.
+
+Species 1 = Fisher (*P. pennanti*)
+
+Species 2 = North American Porcupine (*E. dorsatum*)
 
 ## Set Up
 
@@ -46,12 +50,15 @@ sapply(c("data/raw", "data/processed"), function(dir) {
 #to be stored in an organised fashion that makes them easy to find in the future.
 ```
 
-To create the datasets first the the species data is downloaded from GBIF. This includes a lot of information not required for species distribution modelling. Therefore only the latitude and longitude data is extracted from the large dataset using the coordinate extraction function (see below). Species data was taken from GBIF data network, <https://www.gbif.org/>.
+To create the datasets first the the species data is downloaded from the GBIF data network, <https://www.gbif.org/>.
+
+This includes a lot of information not required for species distribution modelling. Therefore latitude and longitude data must be extracted from the larger dataset. This was done using the coordinate extraction function shown below.
 
 ```{r Coordinate Extraction Function}
 #| code-fold: true
-#| code-summary: "Coordinate extration function"
-#This code extracts just the longitude and latitude (coordinate data) values from the GBIF data
+#| code-summary: "Coordinate Extration Function"
+#This code extracts just the longitude and latitude (coordinate data) values from the GBIF data.
+
 extract_coordinates <- function(speciesdata.gbif) {
     cbind(speciesdata.gbif$lon, speciesdata.gbif$lat) %>% #Combines the long atnd lat data to create coordinates
     na.omit() %>%  
@@ -94,7 +101,7 @@ colnames(species2_coords) <- c("lon", "lat")
 
 ```
 
-To ensure only coordinates within continental landmasses were included any points that intersected with a map of ocean coordinates were removed. The ocean coordinates were taken from the natural earth dataset, <https://naturalearth.s3.amazonaws.com/110m_physical/ne_110m_ocean.zip>.
+Additionally only coordinates within continental landmasses should be included. Therefore any points that intersected with ocean coordinates were removed. The ocean coordinates were taken from the natural earth dataset, <https://naturalearth.s3.amazonaws.com/110m_physical/ne_110m_ocean.zip>.
 
 ```{r Downloading and Reading in Ocean Data}
 #| echo: false
@@ -116,7 +123,6 @@ oceans <- read_sf(grep("shp$", files, value = TRUE)) #Reads shape file
 
 ```{r Species 1 remove ocean points}
 #| echo: false
-#| output: false
 
 #Aligning species coordinates with ocean coordinate reference system.
 species1_coords <- st_as_sf(species1_coords, coords = c("lon", "lat"))
@@ -200,9 +206,9 @@ write.csv(species2_data, file = here("data", "processed", "species2_data.csv"), 
 
 ## Distribution Modelling
 
-#### Species 1 (Fisher)
+#### Species 1
 
-The data downloaded from GBIF only contains data on presence, absence was not recorded. Absence data is required to run the models therefore pseudoabsence data was created by randomly generating 500 points within the study area of each species. This was done using the code below.
+The data downloaded from GBIF only contains data on presence, absence was not recorded. Absence data is required to run the models therefore pseudoabsence data was created by randomly generating 500 points within the study area of each species, using the code below.
 
 ```{r Creating Species 1 study area extent mask}
 #| echo: false
@@ -224,9 +230,11 @@ species1_extent_mask <- rasterize(world_map, raster(species1_extent, res=0.5))
 #| code-fold: true
 #| code-summary: "Generation of Pseudoabsence Data"
 
-set.seed(123) #seed used so that the randomly generated absence points are the same each time so that analysis can be consistent. 
-species1_bg <- randomPoints(species1_extent_mask, 500, ext=species1_extent) #generates the pseudoabsence points. 
-colnames(species1_bg) <- c("lon", "lat") #assigns names to the columns
+set.seed(123) #seed used so that the randomly generated absence points are the same each time and therefore analysis can be consistent each time.
+
+#Generate the pseudoabsence points. 
+species1_bg <- randomPoints(species1_extent_mask, 500, ext=species1_extent) 
+colnames(species1_bg) <- c("lon", "lat") 
 ```
 
 ```{r Species 1 dataset with presence absence and climate variables}
@@ -240,7 +248,7 @@ species1_combined_coords <- rbind(species1_coords, species1_bg)
 #Creates dataframe where 1 indicates presence and 0 absence at each coordinate.
 species1_pa_data <- c(rep(1, nrow(species1_coords)), rep(0, nrow(species1_bg)))
 
-# Extract the bioclimatic data for the presence and background points
+# Extracts the bioclimatic data for the presence and background points
 species1_env_pa_data <- data.frame(cbind(pa = species1_pa_data, extract(species1_biodata, species1_combined_coords)))
 
 #Creating datasets for absence and presence separately for further testing of predictive power.
@@ -249,12 +257,13 @@ species1_testabs <- data.frame(extract(species1_biodata, species1_bg))
 
 ```
 
-The ability of different climate variables to predict the presence absence data was then compared by creating a set of generalised linear models. The models assume binomial errors as the presence absence data is binary data. In total five models were created each containing 3-4 of the climate variables, as this number of variables per model which was small enough to prevent issues of multiple colinearity resulting in singularities and overfitting.
+The ability of different climate variables to predict the presence absence data was then compared by creating a set of generalised linear models (GLMs). The models assume binomial errors as the presence absence data is binary data. In total five models were created each containing 3-4 climate variables, as this number of variables per model which was small enough to prevent issues of multiple colinearity, which cause singularities, and overfitting.
 
-[Model Summaries and AIC:]{.underline}
+[Model Summaries:]{.underline}
 
 ```{r Species 1, model 1 (variables 1-4)}
 #| echo: false
+# Creates GLM
 species1_glm1 <- glm(pa ~ bio1 + bio2 + bio3 + bio4,
     family = binomial(link = "logit"), data = species1_env_pa_data
 )
@@ -295,6 +304,7 @@ Model containing variables 1, 2, 3, and 4.
 
 ```{r Species 1 Model 1 results}
 #| echo: false
+# Prints results of the GLM
 summary(species1_glm1) 
 ```
 
@@ -335,21 +345,20 @@ summary(species1_glm5)
 ```
 :::
 
-Figure 1: Tables showing summary statistics for each generalised linear model of the effect of climate on species 1 distribution.
+Figure 1: Tables showing summary statistics for each GLM created to model the effects of different climate variables on the distribution of species 1.
 
-All models were able to somewhat predict the distribution of fishers, however variable 10 as well as all of the variables in model 2 do not appear to be as important for predicting distribution as some of the other variables.
+All models were able to predict the distribution of Fishers to a certain extent, however variable 10 as well as all of the variables in model 2 do not appear to be as important for predicting distribution as the other climate variables.
 
 To compare how well each model predicts the presence/absence of fishers an Akaike Information Criterion test was performed.
 
 ```{r Comparison of AIC values for species 1 models}
-#| warning: false
 #| echo: false
 AIC(species1_glm1,species1_glm2, species1_glm3, species1_glm4, species1_glm5 )
 ```
 
-Figure 2: Table comparing the AIC values of the five models for species 1.
+Figure 2: Table comparing the AIC values of the species 1 GLMs.
 
-Model 4 has the lowest AIC value and is therefore the best model for predicting fisher distribution, out of those created in this analysis and based on this set of 19 climate variables. This suggests that precipitation of the wettest and driest months, precipitation seasonality and precipitation of the wettest quarter are all very important in determining fisher distribution. The fact that model 4, which contains only variables related to precipitation, was the best model may suggest that precipitation has a stronger effect on fisher distribution than temperature. Although temperature does still appear to have an effect. 
+Model 4 has the lowest AIC value and is therefore the best model for predicting fisher distribution, out of those created in this analysis and based on this set of 19 climate variables. This suggests that precipitation of the wettest and driest months, precipitation seasonality and precipitation of the wettest quarter are all very important in determining fisher distribution. The fact that model 4, which contains only variables related to precipitation, was the best model may suggest that precipitation has a stronger effect on fisher distribution than temperature. This aligns with previous evidence that climate change induced droughts have been negatively affecting fisher populations (Kardosky et. al., 2012). However temperature does still appear to have some effect on Fisher distribution.
 
 [Evaluating AUC and correlation of models:]{.underline}
 
@@ -388,6 +397,7 @@ Model containing variables 1, 2, 3, and 4.
 
 ```{r Species 1 Model 1 evaluation results}
 #| echo: false
+# Prints results of the evaluation function
 print(species1_model1_eval) 
 ```
 
@@ -428,11 +438,11 @@ print(species1_model5_eval)
 ```
 :::
 
-Figure 3: Tables showing the AUC and cor values of each model for species 1.
+Figure 3: Tables showing the AUC and cor values of GLM of species 1.
 
-The results of evaluating the models using AUC and cor values matched those done by comparing the model AIC values. Model 4 had both the highest AUC and the highest correlation. However its cor values was just below 0.5 suggesting that the correlation between these model predictions and the observed distributions are of moderate strength at best. Potentially a model which combines data on precipitation and temperature might have provide more accurate predictions. This could also suggest that non-climate variables are also important in determining the distribution of fishers e.g. interactions with other species.
+The results of evaluating the models using AUC and cor values matched those done by comparing the model AIC values. Model 4 had both the highest AUC and the highest correlation. However its cor values was just below 0.45 suggesting that the correlation between model predictions and the observed distributions are of moderate strength at best. Potentially a model which combines data on precipitation and temperature might have provide more accurate predictions. This might also suggest that additional non-climatic factors are important in determining Fisher distribution. These could include biotic interactions, presence of humans, habitat type etc.
 
-As model 4 is consistently shown to be the best model at predicting fisher distribution (out of those created in this analysis) this is the one which will be used to map current distribution of fishers.
+As model 4 is consistently shown to be the best model for predicting Fisher distribution (out of those created in this analysis) this is the one which will be used to map current distribution of Fishers.
 
 [Mapping current distribution:]{.underline}
 
@@ -449,29 +459,29 @@ species1_pred <- crop(species1_pred, species1_extent)
 species1_tr <- threshold(species1_model4_eval, "prevalence")
 ```
 
-
 ```{r Plot species 1 GLM predictions}
 #| echo: false
-#| fig-cap: "Figure 4: Map showing predicted probabilites of species 1 occurence based on predictions from model 4."
+#| fig-cap: "Figure 4: Map showing predicted probabilities of species 1 occurrence based on predictions from model 4."
 
-plot(species1_pred, main = "GLM Probability of Occurence")
+plot(species1_pred, main = "GLM Probability of Occurrence")
 plot(world_map, add = TRUE, border = "lightgrey")
 
 legend(x = -143, y = 37, strwrap("GBIF Coordinates", 15), bty = "n", pch = 21, pt.bg = c("#56cc9d", "white"),pt.lwd = 0,pt.cex = 1 ,cex = 0.75,)
 points(species1_coords, col="#288660", pch=21, cex=1, bg = "#56cc9d")
 ```
+
 ```{r Species 1 Presence and Absence plot}
 #| echo: false
-#| fig-cap: "Figure 5: Map showing current predicted areas of Presence and Absence for species 1 based on model 4."
+#| fig-cap: "Figure 5: Map showing current predicted areas of presence and absence for species 1 based on model 4."
 plot(species1_pred >= species1_tr, main = "Current Distribution", col = c("#56cc9d", "#F6E620"))
 plot(world_map, add = TRUE, border = "lightgrey")
 legend(x = -143, y = 40, c("Absent","Present"), bty = "n", pch = 22, pt.bg = c("#56cc9d", "#F6E620"),pt.lwd = 0,pt.cex = 1 ,cex = 1)
 
 ```
 
-The distribution predicted by the model matches the observed data to a certain extent. The high probabilities of occurence found across the entire East side of North America and along the Western coast, especially moving up into Canada both line up with the two main clusters of Fisher presence shown by the GBIF data. However the model mostly misses the group of fishers which inhabit central Canada. On the Eastern coast the area's of predicted high probability also extend further south and north than observed data. As model four only includes information on precipitation it is possible adding temperature would restrict the latitudinal range predicted by the model. The binary presence absence map predicts the current distribution of fishers to be split into two distinct populations, one larger one occupying most of Eastern Canada and the US and a smaller one running along the West Coast. While these are the two main clusters seen on observed data from GBIF the actual distribution of Fishers appears to run in a continuous band across the continent. This also suggests that factors other than climate, or at least other than those in model 4, are important to consider when predicting fisher distribution.
+The distribution predicted by the model matches the observed data to a certain extent. The high probabilities of occurence found across the entire East side of North America and along the Western coast both line up with the two main clusters of Fisher presence shown by the GBIF data. However the model mostly misses the small group of fishers which inhabit central Canada. On the Eastern coast the area's of predicted high probability also extend further South and North than observed data. As model four only includes information on precipitation it is possible adding temperature would restrict the latitudinal range predicted by the model. The current distribution map predicts that Fishers are split into two distinct populations, a larger one occupying most of Eastern Canada and the US and a smaller one running along the West Coast. While these are the two main clusters seen in observed data from GBIF the actual distribution of Fishers appears to run in a continuous band across the continent. The fact that the central band of Fishers is not represented in the current distribution is not unexpected as correlation between observed data and model four predictions was moderate therefore we would not expect maps created from model 4 to perfectly match the observed presence.
 
-#### Species 2 (North American Porcupine)
+#### Species 2
 
 ```{r Creating Species 2 study area extent mask}
 #| echo: false
@@ -514,7 +524,6 @@ species2_testpres <- data.frame(extract(species2_biodata, species2_coords))
 species2_testabs <- data.frame(extract(species2_biodata, species2_bg))
 
 ```
-
 
 [Model Summaries and AIC:]{.underline}
 
@@ -600,9 +609,9 @@ summary(species2_glm5)
 ```
 :::
 
-Figure 6: Tables showing summary statistics for each generalised linear model of the effect of climate on species 2 distribution.
+Figure 6: Tables showing summary statistics for each GLM created to model the effects of different climate variables on the distribution of species 2.
 
-For the North American Porcupine only three of the models are able to significantly predict occurrence, models 1, 4, 5. Although the predictive power of model 4 may mostly rely on just one variable, variable 15 (precipitation seasonality). 
+For the North American Porcupine only three of the models are able to significantly predict occurrence, models 1, 4, and 5. Although the predictive power of model 4 may mostly rely on just one variable, variable 15 (precipitation seasonality).
 
 To compare how well each model predicts the presence/absence of the North American Porcupine an Akaike Information Criterion test was performed.
 
@@ -612,9 +621,9 @@ To compare how well each model predicts the presence/absence of the North Americ
 AIC(species2_glm1,species2_glm2, species2_glm3, species2_glm4, species2_glm5 )
 ```
 
-Figure 7: Table comparing the AIC values of the five models for species 2.
+Figure 7: Table comparing the AIC values of the species 2 GLMs.
 
-The model with the lowest AIC value is model 1, which indicates annual mean temperature, mean diurnal range, isothermality and temperature seasonality are all important factors in determining porcupine distribution. However as the other two models containing primarily variables linked to temperature had very limited predictive ability the role. of precipitation cannot fully be discounted as both models 4 and 5 had lower AICS than models 2 and 4. In general all of the models for species 2 had higher AIC's than the models for species 1 which suggests that climate is not as important in controlling the range of porcupines as it is for fishers. 
+The model with the lowest AIC value is model 1, which indicates annual mean temperature, mean diurnal range, isothermality and temperature seasonality are all important factors in determining porcupine distribution. This is somewhat suprising as there is evidence suggesting that Porcupines are vulnerable to high precipiation, especially during the winter. High winter precipiation has been shown to greatly increase winter mortality of Porcupines, potentially due to their high susceptibility to pneumonia (Appel et. al. 2021). However as the other two models containing variables linked primarily to temperature had very limited predictive ability the role of precipitation cannot fully be discounted as both models 4 and 5 had lower AICS than models 2 and 3. In general all of the models for species 2 had higher AIC's than the models for species 1 which suggests that climate is not as important in controlling the range of Porcupines as it is for Fishers.
 
 [Evaluating AUC and correlation of models:]{.underline}
 
@@ -695,7 +704,9 @@ print(species2_model5_eval)
 
 Figure 8: Tables showing the AUC and cor values of each model for species 2.
 
-The results of the evaluation of AUC and cor values are consistent with the AIC values of the models, with model 1 showing the highest AUC and cor values. However the correlation of model one was around 0.3. Suggesting that even though it is the best model it is still quite poor at predicting porcupine distribution. Strengthening the argument that climate is not the main factor determining the range of the North American Porcupine. As it is the best model created in this analysis at explaining
+The results of the evaluation of AUC and cor values are consistent with the AIC values of the models, with model 1 showing the highest AUC and cor values. However the correlation of model 1 was around 0.3. Suggesting that even though it is the best model it is still quite poor at predicting Porcupine distribution. This strengthens the argument that climate is not the main factor determining the range of the North American Porcupine.
+
+However as this is the best model created, in this analysis, to explain Porcupine distribution this is the model used to make predictions about their current distribution.
 
 [Mapping current distribution:]{.underline}
 
@@ -712,16 +723,17 @@ species2_pred <- crop(species2_pred, species2_extent)
 species2_tr <- threshold(species2_model1_eval, "prevalence")
 ```
 
-```{r Plotting species 2 current distribution}
+```{r Plotting species 2 GLM Occurence Map}
 #| echo: false
-#| fig-cap: "Figure 9: Map showing predicted probabilites of species 2 occurence based on predictions from model 1."
+#| fig-cap: "Figure 9: Map showing predicted probabilites of species 2 occurrence based on predictions from model 1."
 #| fig-align: 'center'
-plot(species2_pred, main = "GLM Probability of Occurence")
+plot(species2_pred, main = "GLM Probability of Occurrence")
 plot(world_map, add = TRUE, border = "darkgrey")
 points(species2_coords, col="#288660", pch=21, cex=1, bg = "#56cc9d")
 legend(x = -160, y = 37, strwrap("GBIF Coordinates", 15), bty = "n", pch = 21, pt.bg = c("#56cc9d", "white"),pt.lwd = 0,pt.cex = 1 ,cex = 0.75,)
 ```
-```{r Species 2 Presence and Absence plot}
+
+```{r Species 2 Current Distribution Map}
 #| echo: false
 #| fig-cap: "Figure 10: Map showing current predicted areas of Presence and Absence for species 2 based on model 1."
 plot(species2_pred >= species2_tr, main = "Current Distribution", col = c("#56cc9d", "#F6E620"))
@@ -729,31 +741,29 @@ plot(world_map, add = TRUE, border = "lightgrey")
 legend(x = -160, y = 37, c("Absent","Present"), bty = "n", pch = 22, pt.bg = c("#56cc9d", "#F6E620"),pt.lwd = 0,pt.cex = 1 ,cex = 1)
 ```
 
-In general the observed data from the GBIF dataset matches with areas predicted by the model to have a high chance of occurence. However the model slightly under estimates the latitudinal range of the porcupine with several presence coordinates falling both above and below the main region of predicted occupation. The binary presence absence map does not include the majority of the large cluster of observations found in central and western America. This model of current distribution actually significantly underestimates the range of porcupines. Similarly to the fisher data it shows two completely separate populations despite the real life observations suggesting otherwise. According to both maps we would expect the climate conditions in south-eastern America to support porcupine habitation. However very few based on the GBIF data there are very few porcupines here potentially this area is lacking other important features such as corrected habitat type or an important food plant. 
+In general the observed data from the GBIF dataset matches with areas predicted by the model to have a high chance of occurence. However the model slightly under estimates the latitudinal range of the porcupine with several presence coordinates falling both above and below the main region of predicted occupation. The binary presence absence map does not include the majority of the large cluster of observations found in central and western America. This model of current distribution actually significantly underestimates the range of Porcupines, missing out the majority of occurences recorded in Western USA. Similarly to the Fisher data it shows two completely separate populations despite the real life observations suggesting otherwise. According to both maps we would expect the climate conditions in south-eastern America to support porcupine habitation. However very few based on the GBIF data there are very few porcupines here potentially this area is lacking other important features such as corrected habitat type or an important food plant.
 
-Overall the current distributions of fishers and porcupines are fairly similar, therefore we would expect a high degree of overlap. 
+Overall the current distributions of Fishers and Porcupines are fairly similar, therefore we would expect a high degree of overlap.
 
 ## Distribution Overlap
 
 #### Plotting
 
-Although simply from visually observing the maps of current distribution for both species it is clear they have a large degree of overlap it is still useful to plot maps of the overlap to confirm this. To create fig 11 the results of the predictions for current distribution of each species were combined into one dataset. In the original prediction models the chance the the species will occur in an area is ranked on a scale of 0-1 with higher numbers indicating a higher chance the species will be found there. By combining these datasets in a summative way it creates a dataframe where values around 1 indicate only one species is found in the area and values approaching 2 show that both species are likely to occur
+Although from visual observations the maps of current distribution for both species it is clear they have a large degree of overlap it is still useful to plot maps of the overlap to confirm this. To create Fig 11 the results of the predictions for current distribution of each species were combined into one dataset. In the original prediction models the chance the the species will occur in an area is ranked on a scale of 0-1 with higher numbers indicating a higher chance the species will be found there. By combining these datasets in a summative way it creates a dataframe where values of 0 indicate neither species is likely to be present, values around 1 suggest just one species is present and values approaching 2 indicate areas where both species are likely to occur.
 
 ```{r Combining species 1 and species 2 predicted distributions}
-#| code-fold: true
-#| code-summary: "Creating combined datasets code"
+#| echo: false
 combined <- mosaic(species1_pred, species2_pred, fun = "sum")
 ```
 
-
-```{r Plotting predicted probability of both species occuring between the current distributions }
+```{r Plotting predicted probability of both species occurring between the current distributions }
 #| echo: false
-#| fig-cap: "Figure 11: Map showing the probability that between 0 and 1 species occur in a certain area, yellow represents high likelihood of both species occuring and therefore areas of overlap"
-plot(combined, main = "Overlap of GLM Occurences")
+#| fig-cap: "Figure 11: Map showing the probability that between 0 and 2 species occur in a certain area, yellow represents high likelihood of both species occurring and therefore areas of overlap"
+plot(combined, main = "Overlap of GLM Occurrences")
 
 ```
 
-The individual thresholds for presence of species 1 and 2 were added together to create a threshold above which you would expect both species to occur, therefore allowing us to predict areas of overlapping distribution. 
+The individual thresholds for presence of species 1 and 2 were added together to create a threshold above which you would expect both species to occur, therefore allowing us to predict areas of overlapping distribution.
 
 ```{r Plot sympatric and non-sympatric areas}
 #| echo: false
@@ -763,17 +773,18 @@ plot(world_map, add = TRUE, border = "lightgrey")
 legend(x = -166, y = 37, c("Non-sympatric areas","Sympatric areas"), bty = "n", pch = 22, pt.bg = c("#56cc9d", "#F6E620"),pt.lwd = 0,pt.cex = 1 ,cex = 1)
 ```
 
-The majority of sympatric areas predicted by the models occur in the USA, particularly the Eastern side of it. There is also a small amount of overlap predicted reaching up along the south eastern and south western coast of Canada. 
+The majority of sympatric areas predicted by the models occur in the USA, particularly the Eastern side of it. There is also a small amount of overlap predicted reaching up along the south eastern and south western coast of Canada.
 
 #### Metrics
 
-The degree of overlap can be calculated by finding the sum of predicted localities at which sympatry occurs, based on the threshold created to make fig 12, a dataset combining coordinates from both species and the spatial data mapping occurence of both species, from figure 11. This is then expressed as a proportion of the total coordinates for both species. This will allows the metric to be compared across different species pairs without being affected by the number of coordinates available for each species. See code below for how to calculate. Therefore the final metric of degree of overlap is expressed as the proportion of total coordinates for each species which are above the 2 species occurence threshold.
+The degree of overlap can be calculated by finding the sum of predicted localities at which sympatry occurs, based on the threshold created to make Fig 12. This threshold is then used to extract localities from a dataset of all coordinates of both species at which overlap is likely. This is then expressed as a proportion of the total coordinates for both species. This allows the metric to be compared across different species pairs without being affected by the number of coordinates available for each species. Therefore the final metric of degree of overlap is expressed as the proportion of total coordinates for each species which are above the 2 species occurence threshold.
+
+Calculation is shown in the code below.
 
 ```{r Creating a Dataset of coordinates for both specices}
 #| echo: false
 combined_coords <- rbind(species1_coords, species2_coords) #combines the coordinates from each species into one datafram
 ```
-
 
 ```{r Calculating degree of overlap}
 #| code-fold: true
@@ -786,39 +797,42 @@ overlap_metric <- (sum(overlap_localities == 1, na.rm = TRUE))/length(combined_c
 
 ```{r Results of overlap metric analysis}
 #| echo: false
-print(overlap_metric)
+print(paste("Degree of Overlap =", overlap_metric))
 ```
 
-Just under 60% of localities for Fishers and North American Porcupines are expected to overlap. 
-
+Just under 60% of localities for Fishers and North American Porcupines are expected to overlap. This suggests there might be a degree of interspecies distribution dependence, whereby one species is more likely to occur when the other species is also present. This possibility will be explored in the next section.
 
 ## Modelling Interspecies Distribution Dependence
 
-To test whether there is interspecies distribution dependence of species 1 on species 2 firstly you have to calculate whether species 2 occurs at the presence and absence coordinates used for species 1. Which was done using the code below.
+To test whether there is interspecies distribution dependence of species 1 on species 2 firstly you have to calculate whether species 2 occurs at the presence and absence coordinates used for species 1, which was done using the code below.
 
 ```{r Calculating species 2 probability of occurence at species 1 coordinates}
 #| code-fold: true
-#| code-summary: "Calculating presence/absence of species 2 and species 1 coordinates"
+#| code-summary: "Calculating presence and absence of species 2 and species 1 coordinates"
+
+#extracts the glm predicted chance of occurence for species 2 at each of the coordinates used to model species 1 presence and absence.
 
 species2_occurence_at_species1<- extract(species2_pred, species1_combined_coords)
-colnames(species2_occurence_at_species1) <- c("ID", "pa") #extracts the glm predicted chance of occurence for species 2 at each of the coordinates used to model species 1 presence and absence. 
+colnames(species2_occurence_at_species1) <- c("ID", "pa") 
 
-species2_pa_at_species1<- data.frame(ifelse(species2_occurence_at_species1$pa > species2_tr, (paste(1)), (paste(0)))) # Converts the chances of occurrence into binary values with 0 showing absence and 1 showing presence based on the threshold for presence species2_tr calculated earlier. 
+# Converts the chances of occurrence into binary values with 0 showing absence and 1 showing presence based on the threshold for presence species2_tr calculated earlier.
+
+species2_pa_at_species1<- data.frame(ifelse(species2_occurence_at_species1$pa > species2_tr, (paste(1)), (paste(0))))  
 colnames(species2_pa_at_species1) <- "species2_pa" 
 ```
-
 
 ```{r Adding species 2 presence/absence to the species1_env_pa_data datset}
 #| echo: false
 
+# Adds a column for species 2 pa data to the species1_env_pa_data dataframe.
 species1_env_pa_data$species2_pa = species2_pa_at_species1$species2_pa
 ```
 
-As shown in the code above the species 2 occurence values were extracted from predications made based on a model which included climate variables. Specifically variabesl 1, 2, 3 and 4 as model 1 was used to make the current distribution predictions for species 2. Therefore even when just creating a model for the regression of species 1 pa against extracted species 2 pa climate values are indirectly involved as they contributed to whether species 2 was considered present or absent at each location. However models to test whether climate variables have an interaction on the ability of species 2 to predict the presence of species 1 were also created. 
+As shown in the code above the species 2 occurrence values were extracted from predictions made based on a model which included climate variables. Specifically variabesl 1, 2, 3, and 4 as model 1 was used to make the current distribution predictions for species 2. Therefore even when just creating a model for the regression of species 1 presence-absence against extracted species 2 presence-absence climate values are indirectly involved as they contributed to whether species 2 was considered present or absent at each location. However models to test whether climate variables have an interaction on the ability of species 2 to predict the presence of species 1 were also created.
 
-6 Models were created, a null (reduced) model, a simple linear model looking at the correlation between species 1 and 2 distributions, and four models considering the effect of various climate variables in addition to species 2 on species 1. Two different sets of climate variables were chosen and for each set a no interaction and a with interaction (full) model were created. The sets of climate variables used were variables 1, 2, 3, and 4, and variables 13, 14, 15, and 16. These were chosen as they are the variables groups known to be most important in determining the distributions of species 2 and 1 respectively. Therefore they are the most likely to impact the relationship between species 1 and 2. 
+6 Models were created, a null (reduced) model, a simple linear model looking at the correlation between species 1 and 2 distributions, and four models considering the effect of various climate variables in addition to species 2 on species 1. Two different sets of climate variables were chosen and for each set a no interaction and a with interaction (full) model were created. The sets of climate variables used were variables 1, 2, 3, and 4, and variables 13, 14, 15, and 16. These were chosen as they are the variable groups known to be most important in determining the distributions of species 2 and 1 respectively. Therefore they are the most likely to impact the relationship between species 1 and 2.
 
-To see if there was a significant difference in the ability of models to fit the distribution of species chi-squared tests were performed. A chi-squared was used instead of an ANOVA as species distributions are binary data and therefore binomial glm's were used. Chi-squared is considered more appropriate to use on binomial models than an ANOVA. 
+To see if there was a significant difference in the ability of models to fit the distribution of species chi-squared tests were performed. A chi-squared was used instead of an ANOVA as species distributions are binary data and therefore binomial glm's were used. Chi-squared is considered more appropriate to use on binomial models than an ANOVA.
 
 ```{r Models}
 #| echo: FALSE
@@ -848,41 +862,45 @@ interaction_model2 <- glm(pa ~ species2_pa * bio1 * bio2 * bio3 * bio4, family =
 
 ```{r Comparing AICs of linear models}
 #| echo: false
-#| fig-cap: "Figure 13: Table comparing the AIC's of various models for the effect of species 2 and climate on species 1"
+#| fig-cap: "Figure 13: Table comparing the AIC's of several models for the effect of species 2 and climate on species 1"
 AIC(null_model, no_climate_model, no_interaction_model1, interaction_model1, no_interaction_model2, interaction_model2)
 ```
 
-Based on preliminary analysis of the AIC values it appears that only including species 2 has very little effect on the fit of the model. It is only when climate variables are considered, whether as interactions or not, that the fit begins to drastically improve. This could suggest that climate has a stronger effect on fisher distribution than porcupines. 
+Based on preliminary analysis of the AIC values it appears that only including species 2 has very little effect on the fit of the model. It is only when climate variables are considered, whether as interactions or not, that the fit begins to drastically improve. This could suggest that climate has a stronger effect on fisher distribution than porcupines.
 
 ::: panel-tabset
-
 ###### Species Effect
 
-```{r}
+```{r Null model against species effect}
 #| echo: false
+# Compares the fit of models
 anova(null_model, no_climate_model, test = "Chisq")
 ```
-###### Species vs climate 1
 
-```{r}
+###### Species vs Species and Climate 1
+
+```{r Just species model against climate model 1}
 #| echo: false
 anova(no_climate_model, no_interaction_model2, test = "Chisq")
 ```
-###### Species and Climate interaction 1
 
-```{r}
+###### Species-Climate Interaction 1
+
+```{r no-interaction against interaction climate model 1}
 #| echo: false
 anova(no_interaction_model1, interaction_model1, test = "Chisq")
 ```
-###### Species vs CLimate 2
 
-```{r}
+###### Species vs Species and Climate 2
+
+```{r Just species against climate 2}
 #| echo: false
 anova(no_climate_model, no_interaction_model2, test = "Chisq")
 ```
-###### Species and CLimate Interaction 2
 
-```{r}
+###### Species-Climate Interaction 2
+
+```{r No-interaction against interaction climate model 2}
 #| echo: false
 anova(no_interaction_model2, interaction_model2,test = "Chisq")
 ```
@@ -892,18 +910,21 @@ Figure 14: Tables showing the results of Chi-squared tests between pairs of mode
 
 The statistical analyses above show that Porcupine distribution does have an affect on Fishers as the species only model did perform significantly better when compared to the null model. However both of the no-interaction climate models were significantly better at explaining Fisher distribution than the model just containing species suggesting that climate has a much larger affect on them than Porcupines. However adding climate variables as interactions also improved the fit of the model to fisher distribution, suggesting that porcupines can affect the distribution of Fishers but it is heavily mediated by climate conditions.
 
-As these results seemed to suggest that climate is the main factor influencing fisher distribution I decided to compare whether removing species from no-interaction models actually had any significant effects. Model 4 from figure 1 is the same as the no interaction model for the second set of climate variables therefore these models were compared. 
+As these results seemed to suggest that climate is the main factor influencing fisher distribution I decided to compare whether removing species from no-interaction models actually had any significant effects. Model 4 from figure 1 is the same as the no interaction model for the second set of climate variables therefore these models were compared.
 
-```{r}
+```{r Just climate against climate and species model}
 #| echo: false
 #IGNORE IF RE-RUNNING WITH A DIFFERENT PAIR OF SPECIES, THIS IS SPECIFIC TO THE RESULTS OF MY ANALYSIS
 anova(species1_glm4, no_interaction_model2, test = "Chisq")
 ```
-Although small there was a significant effect of removing Porcupines as a variable. This indicates that there is a small amount of interspecies dependence even when climate variables are also being considered. Due to the high degree of overlap between the species calculated earlier this likely represents weak positive correlation between the two species. However as climate is by far the more influential variable does not neccessarily suggest that fishers have a dependence on porcupines to inhabit a region. It is likely this could instead reflect overlap in prefered conditions between the species. 
+
+Figure 15: Results of Chi-Squared test of comparing model using just climate variables with one using species 2 and climate.
+
+Although small there was a significant effect of removing Porcupines as a variable. This indicates that there is a small amount of interspecies dependence even when climate variables are also being considered. Due to the high degree of overlap between the species calculated earlier this likely represents weak positive correlation between the two species.This matches with the knowledge that in many areas Porcupines are the main food source of Fishers (Earle & Kramm, 1982). However as climate is by far the more influential variable does not necessarily suggest that fishers have a dependence on porcupines to inhabit a region. It is likely this could instead reflect overlap in preferred conditions between the species.
 
 ## Future Distribution Prediction
 
-To predict the future distribution of species future climate projections are required to provide data to run the previously created models on. The projection data used here was from CMIP5 (Coupled Model Intercomparison Project Phase 5), which is available here <https://aims2.llnl.gov/search>.
+To predict the future distribution of species future climate projections are required to provide data to run the previously created models on. The projection data used here was from CMIP5 (Coupled Model Intercomparison Project Phase 5), which is available from <https://aims2.llnl.gov/search>.
 
 ```{r Downloading future climate projections data}
 #| echo: false
@@ -921,7 +942,7 @@ names(future_bio_data) <- names(bio_data) #ensures the same names used in bio_da
 
 #### Species 1
 
-Future climate predictions are based off model 4 as this was the best at predicting current distribution for fishers. Future predictions were calculated by running a prediction based of the original model 4 but using the new projection climate data as opposed to the current climate data. 
+Future climate predictions are based off model 4 as this was the best at predicting current distribution for fishers. Future predictions were calculated by running a prediction based of the original model 4 but using the new projection climate data as opposed to the current climate data.
 
 ```{r Crop future climate data to the species 1 study area}
 #| echo: false
@@ -934,19 +955,21 @@ species1_future_bio_data <- crop(future_bio_data, species1_extent)
 species1_future_pred <- predict(species1_future_bio_data, species1_glm4, ext = species1_extent, type = "response")
 ```
 
+[Maps:]{.underline}
+
 ```{r Plotting future distributions for species 1}
 #| echo: false
-#| fig-cap: "Figure 13: Maps comparing the Present GLM Occurences and Distributions of Species 1 with those based on Climate Projections for 2060-2081"
+#| fig-cap: "Figure 15: Maps comparing the Present GLM Occurrences and Distributions of Species 1 with those based on Climate Projections for 2060-2081"
 
 # Plots results side by side
 par(mfrow = c(2, 2))
 
 # Present distribution
-plot(species1_pred, main = "Present GLM Probability of Occurence")
+plot(species1_pred, main = "Present GLM Probability of Occurrence")
 plot(world_map, add = TRUE, border = "darkgrey")
 
 # Future distribution
-plot(species1_future_pred, main = "Future GLM Probability of Occurence")
+plot(species1_future_pred, main = "Future GLM Probability of Occurrence")
 plot(world_map, add = TRUE, border = "darkgrey")
 
 #Current Presence
@@ -959,7 +982,8 @@ plot(species1_future_pred >= species1_tr, main = "Future Distribution", col = c(
 plot(world_map, add = TRUE, border = "lightgrey")
 legend(x = -140, y = 45, c("Absent","Present"), bty = "n", pch = 22, pt.bg = c("#56cc9d", "#F6E620"),pt.lwd = 0,pt.cex = 1 ,cex = 0.50)
 ```
-There is very little, if any change in the future distribution of fishers linked to climate change based on these models. There is a slight loss of connectivity within the western population. On the other hand the Eastern population shows a slight range expansion northwards into Quebec. Overall fishers are predicted by these models to be able to retain most of their current distribution, with potential for a small range expansion northwards in certain areas. 
+
+There is very little, if any change in the future distribution of fishers linked to climate change based on these models. There is a slight loss of connectivity within the western population. On the other hand the Eastern population shows a slight range expansion northwards into Quebec. Overall fishers are predicted by these models to be able to retain most of their current distribution, with potential for a small range expansion northwards in certain areas.
 
 ```{r Calculating changes in range for species 1}
 #| echo: false
@@ -974,20 +998,21 @@ species1_range_contraction <- sum((species1_localities == 1) & (species1_future_
 
 ```
 
+[Range Change Metrics:]{.underline}
+
 ```{r Printing species 1 range results}
 #| echo: false
-print("Range change metrics:")
-print(paste("Current suitable localities:", species1_current_range))
-print(paste("Future suitable localities:", species1_future_range))
-print(paste("Number of new suitable localities (expansion):", species1_range_expansion))
-print(paste("Number of lost suitable localities (contraction):", species1_range_contraction))
+print(paste("Current suitable localities =", species1_current_range))
+print(paste("Future suitable localities =", species1_future_range))
+print(paste("Number of new suitable localities (expansion) =", species1_range_expansion))
+print(paste("Number of lost suitable localities (contraction) =", species1_range_contraction))
 ```
 
-As predicted from looking at the maps of distribution changes there is very little difference in the current and future predicted range of fishers. The species undergoes both range expansions and contractions, with very small net contraction of range expected in the future. 
+As predicted from looking at the maps of distribution changes there is very little difference in the current and future predicted range of fishers. While he species undergoes both range expansions and contractions, the net change is range contraction, although only by a small amount.
 
 #### Species 2
 
-Future climate predictions are based off model 1 as this was the best at predicting current distribution for Porcupines. Future predictions were calculated in the same way as for species 1. 
+Future climate predictions are based off model 1 as this was the best at predicting current distribution for Porcupines. Future predictions were calculated in the same way as for species 1.
 
 ```{r Crop future climate data to the species 2 study area}
 #| echo: false
@@ -1000,20 +1025,20 @@ species2_future_bio_data <- crop(future_bio_data, species2_extent)
 species2_future_pred <- predict(species2_future_bio_data, species2_glm1, ext = species2_extent, type = "response")
 ```
 
-
+[Maps:]{.underline}
 
 ```{r Plotting future distributions of species 2}
 #| echo: false
-#| fig-cap: "Figure 14: Maps comparing the present GLM Occurences and Distributions of Species 2 with those based on Climate Projections for 2060-2081"
+#| fig-cap: "Figure 16: Maps comparing the present GLM Occurrences and Distributions of Species 2 with those based on Climate Projections for 2060-2081"
 
 par(mfrow = c(2,2))
 
 # Present distribution
-plot(species2_pred, main = "Present GLM Occurence")
+plot(species2_pred, main = "Present GLM Occurrence")
 plot(world_map, add = TRUE, border = "darkgrey")
 
 # Future distribution
-plot(species2_future_pred, main = "Future GLM Occurence")
+plot(species2_future_pred, main = "Future GLM Occurrence")
 plot(world_map, add = TRUE, border = "darkgrey")
 
 plot(species2_pred >= species2_tr, main = "Current Distribution", col = c("#56cc9d", "#F6E620"))
@@ -1024,7 +1049,8 @@ plot(species2_future_pred >= species2_tr, main = "Future Distribution", col = c(
 plot(world_map, add = TRUE, border = "lightgrey")
 legend(x = -160, y = 45, c("Absent","Present"), bty = "n", pch = 22, pt.bg = c("#56cc9d", "#F6E620"),pt.lwd = 0,pt.cex = 1 ,cex = 0.75)
 ```
-The range of North American Porcupines is expected in increase significantly, with large expansions both North and South of the current range. Based on climate data alone is appears that climate change could allow porcupines to colonise all of the United States as well as most regions of Canada except the centre. However this increase in range would include a shift in habitat from grasslands and temperate forest towards boreal forests and tundra in the North and tropical forests in the South (NABCI, 2016). Therefore in reality if climate changes are not accompanied by an expansion of the preferred habitat of porcupines then they might not be able to fully track the climate changes, limiting the observed range expansion. However similar to the fishers these results suggest that under current predictions of climate change porcupines would be expected to at a minimum maintain their current distribution. 
+
+The range of North American Porcupines is expected in increase significantly, with large expansions both North and South of the current range. Based on climate data alone is appears that climate change could allow porcupines to colonise all of the United States as well as most regions of Canada except the centre. However this increase in range would include a shift in habitat from grasslands and temperate forest towards boreal forests and tundra in the North and tropical forests in the South (NABCI, 2016). Therefore in reality if climate changes are not accompanied by an expansion of the preferred habitat of Porcupines then they might not be able to fully track the climate changes, limiting the observed range expansion. Although there is some evidence that in the Pacific North West Porcupines are beginning to shift their preferred habit away from forests towards desser scrub and grassland habitats (Appel et. al., 2021). This is the main habitat type of the central region of the USA into which this model predicts they will expand into. Therefore this movement may already be starting to happen. However regardless of whether Porcupines are able to track the expansion of their favoured climate niche similar to the Fishers according to these models they would at the very least be expected to retain their current range under climate change conditions.
 
 ```{r Calculating changes in range for species 2}
 #| echo: false
@@ -1039,37 +1065,39 @@ species2_range_contraction <- sum((species2_localities == 1) & (species2_future_
 
 ```
 
+[Range Change Metrics:]{.underline}
+
 ```{r Printing species 2 range results}
-print("Range change metrics:")
-print(paste("Current suitable localities:", species2_current_range))
-print(paste("Future suitable localities:", species2_future_range))
-print(paste("Number of new suitable localities (expansion):", species2_range_expansion))
-print(paste("Number of lost suitable localities (contraction):", species2_range_contraction))
+#| echo: false
+print(paste("Current suitable localities =", species2_current_range))
+print(paste("Future suitable localities =", species2_future_range))
+print(paste("Number of new suitable localities (expansion =", species2_range_expansion))
+print(paste("Number of lost suitable localities (contraction) =", species2_range_contraction))
 ```
-As shown by the maps in fig 14 there is a large increase in predicted distribution of the North American Porcupine, 
+
+As shown by the maps in fig 16 there is a large increase in predicted distribution of the North American Porcupine,
 
 #### Degree of Overlap
 
-As the range of each individual species shifts the degree of overlap between the two species is also expected to change. 
+As the range of each individual species shifts the degree of overlap between the two species is also expected to change.
 
 ```{r Combining future predictions of species distribution}
 #| echo: false
 combined_future <- mosaic(species1_future_pred, species2_future_pred, fun = "sum")
 ```
 
-
 ```{r Plotting future degree of overlap}
 #| echo: false
-#| fig-cap: "Figure 15: Maps comparing the present GLM Occurence overlap and Distributions of Overlap  with those based on Climate Projections for 2060-2081"
+#| fig-cap: "Figure 17: Maps comparing the present GLM Occurrence overlap and Distributions of Overlap  with those based on Climate Projections for 2060-2081"
 
 par(mfrow = c(2,2))
 
 # Present overlap
-plot(combined, main = "Present overlap of GLM Occurence")
+plot(combined, main = "Present overlap of GLM Occurrence")
 plot(world_map, add = TRUE, border = "darkgrey")
 
 # Future overlap
-plot(combined_future, main = "Future overlap of GLM Occurence")
+plot(combined_future, main = "Future overlap of GLM Occurrence")
 plot(world_map, add = TRUE, border = "darkgrey")
 
 #Current Sympatry
@@ -1083,7 +1111,8 @@ plot(world_map, add = TRUE, border = "lightgrey")
 legend(x = -166, y = 45, c("Non-Sympatric","Sympatric"), bty = "n", pch = 22, pt.bg = c("#56cc9d", "#F6E620"),pt.lwd = 0,pt.cex = 1 ,cex = 0.70)
 
 ```
-The maps above show that the overlap in distribution between Fishers and North American Porcupines is expected to increase in the future. In particular sympatric area's in the future are expected to expand up the East coast of Canada, where currently they are mostly confined to the US. There are also expected to gain some new areas of overlap in the mid-western US. This increase in overlap is probably mostly due to the expansion of porcupines northward into Canada and their predicted future colonisation of the entire US as fishers have very little change in distribution between the present and future conditions. The GLM Occurence models as show that as well as the area in which they overlap increasing the general probability that both species co-occur across the region also increases. 
+
+The maps above show that the overlap in distribution between Fishers and North American Porcupines is expected to increase in the future. In particular sympatric area's in the future are expected to expand up the East coast of Canada, where currently they are mostly confined to the US. There are also expected to gain some new areas of overlap in the mid-western US. This increase in overlap is probably mostly due to the expansion of porcupines northward into Canada and their predicted future colonisation of the entire US as fishers have very little change in distribution between the present and future conditions. The GLM Occurence models as show that as well as the area in which they overlap increasing the general probability that both species co-occur across the region also increases.
 
 ```{r Calculating degree of future overlap}
 #| echo: false
@@ -1095,19 +1124,21 @@ future_overlap_metric <- (sum(future_overlap_localities == 1, na.rm = TRUE))/len
 
 ```{r Results of future overlap metric analysis}
 #| echo: false
-print(future_overlap_metric)
+print(paste("Future Degree of Overlap =", future_overlap_metric))
 ```
-In the future the degree of overlap is predicted to be around 66% which is large than the metric calculated for current distributions. This matches with the maps of how areas of sympatry will change seen in fig 15, which also predict an increase in the amount of locations where the two species overlap. 
+
+In the future the degree of overlap is predicted to be around 66% which is large than the metric calculated for current distributions. This matches with the maps of how areas of sympatry will change seen in fig 17, which also predict an increase in the number of locations where the two species overlap.
 
 ## Bibliography
 
+Appel, C. L., Moriarty, K. M., Matthews, S. M., Green, D. S., King, S. A., Yaeger, J. S., . . . Bean, W. T. (2021). NORTH AMERICAN PORCUPINE DISTRIBUTION IN THE PACIFIC NORTHWEST AND EVALUATION OF A NON-INVASIVE MONITORING TECHNIQUE. *Northwestern Naturalist, 102*(1), 9-29. 
+<https://doi.org/10.1898/1051-1733-102.1.9>
 
+Earle, R. D., & Kramm, K. R. (1982). Correlation Between Fisher and Porcupine Abundance in Upper Michigan. *The American Midland Naturalist, 107*(2), 244-249. <https://doi.org/10.2307/2425375>
 
+Kordosky, J., Gese, E., Thompson, C. M., Terletzky, P., Purcell, K., & Schneiderman, J. (2021). Landscape use by fishers (Pekania pennanti): core areas differ in habitat than the entire home range. *Canadian Journal of Zoology, 99*(4), 289-297. <http://dx.doi.org/10.1139/cjz-2020-0073>
 
+NABCI. (2016). *State of North America's Birds 2016.* Ottowa, Ontario: Environment and Climate Change Canada. 
+<www.stateofthebirds.org>
 
-
-
-
-
-
-
+Pokallus, J. W., & Pauli, J. N. (2016). Predation shapes the movement of a well-defended species, the North American porcupine, even when nutritionally stressed. *Behavioural Ecology, 27*(2), 470-475. <https://doi.org/10.1093/beheco/arv176>
