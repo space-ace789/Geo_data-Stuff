@@ -42,7 +42,8 @@ sapply(c("data/raw", "data/processed"), function(dir) {
     dir_path <- here(dir)
     if (!dir.exists(dir_path)) dir.create(dir_path, recursive = TRUE)
 })
-#This code creates a file structure to allow the datasets created in this project to be stored in an organised fashion that makes them easy to find in the future.
+#This code creates a file structure to allow the datasets created in this project
+#to be stored in an organised fashion that makes them easy to find in the future.
 ```
 
 To create the datasets first the the species data is downloaded from GBIF. This includes a lot of information not required for species distribution modelling. Therefore only the latitude and longitude data is extracted from the large dataset using the coordinate extraction function (see below). Species data was taken from GBIF data network, <https://www.gbif.org/>.
@@ -1099,6 +1100,7 @@ print(future_overlap_metric)
 In the future the degree of overlap is predicted to be around 66% which is large than the metric calculated for current distributions. This matches with the maps of how areas of sympatry will change seen in fig 15, which also predict an increase in the amount of locations where the two species overlap. 
 
 ## Bibliography
+
 
 
 

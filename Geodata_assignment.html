@@ -774,12 +774,6 @@ max TPR+TNR at : 3.860463 </code></pre>
 <p>6 Models were created, a null (reduced) model, a simple linear model looking at the correlation between species 1 and 2 distributions, and four models considering the effect of various climate variables in addition to species 2 on species 1. Two different sets of climate variables were chosen and for each set a no interaction and a with interaction (full) model were created. The sets of climate variables used were variables 1, 2, 3, and 4, and variables 13, 14, 15, and 16. These were chosen as they are the variables groups known to be most important in determining the distributions of species 2 and 1 respectively. Therefore they are the most likely to impact the relationship between species 1 and 2.</p>
 <p>To see if there was a significant difference in the ability of models to fit the distribution of species chi-squared tests were performed. A chi-squared was used instead of an ANOVA as species distributions are binary data and therefore binomial glm’s were used. Chi-squared is considered more appropriate to use on binomial models than an ANOVA.</p>
 <div class="cell">
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred
-Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</code></pre>
-</div>
-</div>
-<div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>                      df      AIC
 null_model             1 3496.903
@@ -791,24 +785,103 @@ interaction_model2    32 1718.044</code></pre>
 </div>
 </div>
 <p>Based on preliminary analysis of the AIC values it appears that only including species 2 has very little effect on the fit of the model. It is only when climate variables are considered, whether as interactions or not, that the fit begins to drastically improve. This could suggest that climate has a stronger effect on fisher distribution than porcupines.</p>
+<div class="tabset-margin-container"></div><div class="panel-tabset">
+<ul class="nav nav-tabs" role="tablist"><li class="nav-item" role="presentation"><a class="nav-link active" id="tabset-5-1-tab" data-bs-toggle="tab" data-bs-target="#tabset-5-1" role="tab" aria-controls="tabset-5-1" aria-selected="true" href="">Species Effect</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-5-2-tab" data-bs-toggle="tab" data-bs-target="#tabset-5-2" role="tab" aria-controls="tabset-5-2" aria-selected="false" href="">Species vs climate 1</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-5-3-tab" data-bs-toggle="tab" data-bs-target="#tabset-5-3" role="tab" aria-controls="tabset-5-3" aria-selected="false" href="">Species and Climate interaction 1</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-5-4-tab" data-bs-toggle="tab" data-bs-target="#tabset-5-4" role="tab" aria-controls="tabset-5-4" aria-selected="false" href="">Species vs CLimate 2</a></li><li class="nav-item" role="presentation"><a class="nav-link" id="tabset-5-5-tab" data-bs-toggle="tab" data-bs-target="#tabset-5-5" role="tab" aria-controls="tabset-5-5" aria-selected="false" href="">Species and CLimate Interaction 2</a></li></ul>
+<div class="tab-content">
+<div id="tabset-5-1" class="tab-pane active" role="tabpanel" aria-labelledby="tabset-5-1-tab">
 <div class="cell">
-<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">anova</span>(no_climate_model)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>Analysis of Deviance Table
 
-Model: binomial, link: logit
-
-Response: pa
-
-Terms added sequentially (first to last)
-
-            Df Deviance Resid. Df Resid. Dev  Pr(&gt;Chi)    
-NULL                         6311     3494.9              
-species2_pa  1    88.61      6310     3406.3 &lt; 2.2e-16 ***
+Model 1: pa ~ 1
+Model 2: pa ~ species2_pa
+  Resid. Df Resid. Dev Df Deviance  Pr(&gt;Chi)    
+1      6311     3494.9                          
+2      6310     3406.3  1    88.61 &lt; 2.2e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
 </div>
+</div>
+<div id="tabset-5-2" class="tab-pane" role="tabpanel" aria-labelledby="tabset-5-2-tab">
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Deviance Table
+
+Model 1: pa ~ species2_pa
+Model 2: pa ~ species2_pa + bio13 + bio14 + bio15 + bio16
+  Resid. Df Resid. Dev Df Deviance  Pr(&gt;Chi)    
+1      6310     3406.3                          
+2      6306     2628.9  4   777.41 &lt; 2.2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+</div>
+<div id="tabset-5-3" class="tab-pane" role="tabpanel" aria-labelledby="tabset-5-3-tab">
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Deviance Table
+
+Model 1: pa ~ species2_pa + bio1 + bio2 + bio3 + bio4
+Model 2: pa ~ species2_pa * bio1 * bio2 * bio3 * bio4
+  Resid. Df Resid. Dev Df Deviance  Pr(&gt;Chi)    
+1      6306     2915.1                          
+2      6280     1654.0 26     1261 &lt; 2.2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+</div>
+<div id="tabset-5-4" class="tab-pane" role="tabpanel" aria-labelledby="tabset-5-4-tab">
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Deviance Table
+
+Model 1: pa ~ species2_pa
+Model 2: pa ~ species2_pa + bio13 + bio14 + bio15 + bio16
+  Resid. Df Resid. Dev Df Deviance  Pr(&gt;Chi)    
+1      6310     3406.3                          
+2      6306     2628.9  4   777.41 &lt; 2.2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+</div>
+<div id="tabset-5-5" class="tab-pane" role="tabpanel" aria-labelledby="tabset-5-5-tab">
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Deviance Table
+
+Model 1: pa ~ species2_pa + bio13 + bio14 + bio15 + bio16
+Model 2: pa ~ species2_pa * bio1 * bio2 * bio3 * bio4
+  Resid. Df Resid. Dev Df Deviance  Pr(&gt;Chi)    
+1      6306     2628.9                          
+2      6280     1654.0 26   974.84 &lt; 2.2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<p>Figure 14: Tables showing the results of Chi-squared tests between pairs of models for the effect of species 2 on species 1</p>
+<p>The statistical analyses above show that Porcupine distribution does have an affect on Fishers as the species only model did perform significantly better when compared to the null model. However both of the no-interaction climate models were significantly better at explaining Fisher distribution than the model just containing species suggesting that climate has a much larger affect on them than Porcupines. However adding climate variables as interactions also improved the fit of the model to fisher distribution, suggesting that porcupines can affect the distribution of Fishers but it is heavily mediated by climate conditions.</p>
+<p>As these results seemed to suggest that climate is the main factor influencing fisher distribution I decided to compare whether removing species from no-interaction models actually had any significant effects. Model 4 from figure 1 is the same as the no interaction model for the second set of climate variables therefore these models were compared.</p>
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>Analysis of Deviance Table
+
+Model 1: pa ~ bio13 + bio14 + bio15 + bio16
+Model 2: pa ~ species2_pa + bio13 + bio14 + bio15 + bio16
+  Resid. Df Resid. Dev Df Deviance Pr(&gt;Chi)  
+1      6307     2634.3                       
+2      6306     2628.9  1   5.4362  0.01972 *
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
+</div>
+</div>
+<p>Although small there was a significant effect of removing Porcupines as a variable. This indicates that there is a small amount of interspecies dependence even when climate variables are also being considered. Due to the high degree of overlap between the species calculated earlier this likely represents weak positive correlation between the two species. However as climate is by far the more influential variable does not neccessarily suggest that fishers have a dependence on porcupines to inhabit a region. It is likely this could instead reflect overlap in prefered conditions between the species.</p>
 </section>
 <section id="future-distribution-prediction" class="level2">
 <h2 class="anchored" data-anchor-id="future-distribution-prediction">Future Distribution Prediction</h2>
@@ -861,23 +934,23 @@ Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</code></pre>
 </div>
 <p>The range of North American Porcupines is expected in increase significantly, with large expansions both North and South of the current range. Based on climate data alone is appears that climate change could allow porcupines to colonise all of the United States as well as most regions of Canada except the centre. However this increase in range would include a shift in habitat from grasslands and temperate forest towards boreal forests and tundra in the North and tropical forests in the South (NABCI, 2016). Therefore in reality if climate changes are not accompanied by an expansion of the preferred habitat of porcupines then they might not be able to fully track the climate changes, limiting the observed range expansion. However similar to the fishers these results suggest that under current predictions of climate change porcupines would be expected to at a minimum maintain their current distribution.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="st">"Range change metrics:"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="st">"Range change metrics:"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Range change metrics:"</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Current suitable localities:"</span>, species2_current_range))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Current suitable localities:"</span>, species2_current_range))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Current suitable localities: 9336"</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Future suitable localities:"</span>, species2_future_range))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Future suitable localities:"</span>, species2_future_range))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Future suitable localities: 16551"</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Number of new suitable localities (expansion):"</span>, species2_range_expansion))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Number of new suitable localities (expansion):"</span>, species2_range_expansion))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Number of new suitable localities (expansion): 7971"</code></pre>
 </div>
-<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Number of lost suitable localities (contraction):"</span>, species2_range_contraction))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(<span class="fu">paste</span>(<span class="st">"Number of lost suitable localities (contraction):"</span>, species2_range_contraction))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Number of lost suitable localities (contraction): 0"</code></pre>
 </div>
