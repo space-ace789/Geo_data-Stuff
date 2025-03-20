@@ -5,6 +5,10 @@ format:
    toc: true
    toc-depth: 2
    toc-title: Contents
+   embed-resources: true
+   title-block-banner: "#79C2AD"
+   title-block-banner-color: "white"
+number-sections: true 
 theme: minty
 editor: visual
 ---
@@ -19,7 +23,7 @@ Species 2 = North American Porcupine (*E. dorsatum*)
 
 ## Set Up
 
-#### Packages used:
+### Packages used:
 
 ```{r Packages Used}
 #| output: false
@@ -32,13 +36,13 @@ library(tibble)
 library(terra)
 ```
 
-#### Load in a World Map:
+### Load in a World Map:
 
 ```{r Creating World Map object}
 world_map <- getMap(resolution = "coarse")
 ```
 
-#### Creating Species Coordinate Datasets:
+### Creating Species Coordinate Datasets:
 
 ```{r Creating a file structure}
 #| include: false
@@ -105,6 +109,7 @@ Additionally only coordinates within continental landmasses should be included. 
 
 ```{r Downloading and Reading in Ocean Data}
 #| echo: false
+#| output: false
 
 #Downloading Ocean data
 ocean_data_dir <- here("data", "raw", "ocean")
@@ -176,7 +181,7 @@ species2_coords <- subset(species2_coords, lat > 0) #Removes any points in the S
 
 ```
 
-#### Loading and Extracting Climate Variables:
+### Loading and Extracting Climate Variables:
 
 To create a model predicting species distribution based on climate variables you also need a dataset of various climate measurements from the area covered by the species dataset coordinates. Climate data was downloaded from the worldclim database, <https://www.worldclim.org/>.
 
@@ -206,7 +211,7 @@ write.csv(species2_data, file = here("data", "processed", "species2_data.csv"), 
 
 ## Distribution Modelling
 
-#### Species 1
+### Species 1
 
 The data downloaded from GBIF only contains data on presence, absence was not recorded. Absence data is required to run the models therefore pseudoabsence data was created by randomly generating 500 points within the study area of each species, using the code below.
 
@@ -481,7 +486,7 @@ legend(x = -143, y = 40, c("Absent","Present"), bty = "n", pch = 22, pt.bg = c("
 
 The distribution predicted by the model matches the observed data to a certain extent. The high probabilities of occurence found across the entire East side of North America and along the Western coast both line up with the two main clusters of Fisher presence shown by the GBIF data. However the model mostly misses the small group of fishers which inhabit central Canada. On the Eastern coast the area's of predicted high probability also extend further South and North than observed data. As model four only includes information on precipitation it is possible adding temperature would restrict the latitudinal range predicted by the model. The current distribution map predicts that Fishers are split into two distinct populations, a larger one occupying most of Eastern Canada and the US and a smaller one running along the West Coast. While these are the two main clusters seen in observed data from GBIF the actual distribution of Fishers appears to run in a continuous band across the continent. The fact that the central band of Fishers is not represented in the current distribution is not unexpected as correlation between observed data and model four predictions was moderate therefore we would not expect maps created from model 4 to perfectly match the observed presence.
 
-#### Species 2
+### Species 2
 
 ```{r Creating Species 2 study area extent mask}
 #| echo: false
@@ -747,7 +752,7 @@ Overall the current distributions of Fishers and Porcupines are fairly similar, 
 
 ## Distribution Overlap
 
-#### Plotting
+### Plotting
 
 Although from visual observations the maps of current distribution for both species it is clear they have a large degree of overlap it is still useful to plot maps of the overlap to confirm this. To create Fig 11 the results of the predictions for current distribution of each species were combined into one dataset. In the original prediction models the chance the the species will occur in an area is ranked on a scale of 0-1 with higher numbers indicating a higher chance the species will be found there. By combining these datasets in a summative way it creates a dataframe where values of 0 indicate neither species is likely to be present, values around 1 suggest just one species is present and values approaching 2 indicate areas where both species are likely to occur.
 
@@ -775,7 +780,7 @@ legend(x = -166, y = 37, c("Non-sympatric areas","Sympatric areas"), bty = "n", 
 
 The majority of sympatric areas predicted by the models occur in the USA, particularly the Eastern side of it. There is also a small amount of overlap predicted reaching up along the south eastern and south western coast of Canada.
 
-#### Metrics
+### Metrics
 
 The degree of overlap can be calculated by finding the sum of predicted localities at which sympatry occurs, based on the threshold created to make Fig 12. This threshold is then used to extract localities from a dataset of all coordinates of both species at which overlap is likely. This is then expressed as a proportion of the total coordinates for both species. This allows the metric to be compared across different species pairs without being affected by the number of coordinates available for each species. Therefore the final metric of degree of overlap is expressed as the proportion of total coordinates for each species which are above the 2 species occurence threshold.
 
@@ -940,7 +945,7 @@ future_bio_data <- cmip6_world(
 names(future_bio_data) <- names(bio_data) #ensures the same names used in bio_data are applied to the future_bio_data dataframe.
 ```
 
-#### Species 1
+### Species 1
 
 Future climate predictions are based off model 4 as this was the best at predicting current distribution for fishers. Future predictions were calculated by running a prediction based of the original model 4 but using the new projection climate data as opposed to the current climate data.
 
@@ -1010,7 +1015,7 @@ print(paste("Number of lost suitable localities (contraction) =", species1_range
 
 As predicted from looking at the maps of distribution changes there is very little difference in the current and future predicted range of fishers. While he species undergoes both range expansions and contractions, the net change is range contraction, although only by a small amount.
 
-#### Species 2
+### Species 2
 
 Future climate predictions are based off model 1 as this was the best at predicting current distribution for Porcupines. Future predictions were calculated in the same way as for species 1.
 
@@ -1077,7 +1082,7 @@ print(paste("Number of lost suitable localities (contraction) =", species2_range
 
 As shown by the maps in fig 16 there is a large increase in predicted distribution of the North American Porcupine,
 
-#### Degree of Overlap
+### Degree of Overlap
 
 As the range of each individual species shifts the degree of overlap between the two species is also expected to change.
 
@@ -1131,14 +1136,12 @@ In the future the degree of overlap is predicted to be around 66% which is large
 
 ## Bibliography
 
-Appel, C. L., Moriarty, K. M., Matthews, S. M., Green, D. S., King, S. A., Yaeger, J. S., . . . Bean, W. T. (2021). NORTH AMERICAN PORCUPINE DISTRIBUTION IN THE PACIFIC NORTHWEST AND EVALUATION OF A NON-INVASIVE MONITORING TECHNIQUE. *Northwestern Naturalist, 102*(1), 9-29. 
-<https://doi.org/10.1898/1051-1733-102.1.9>
+Appel, C. L., Moriarty, K. M., Matthews, S. M., Green, D. S., King, S. A., Yaeger, J. S., . . . Bean, W. T. (2021). NORTH AMERICAN PORCUPINE DISTRIBUTION IN THE PACIFIC NORTHWEST AND EVALUATION OF A NON-INVASIVE MONITORING TECHNIQUE. *Northwestern Naturalist, 102*(1), 9-29. <https://doi.org/10.1898/1051-1733-102.1.9>
 
 Earle, R. D., & Kramm, K. R. (1982). Correlation Between Fisher and Porcupine Abundance in Upper Michigan. *The American Midland Naturalist, 107*(2), 244-249. <https://doi.org/10.2307/2425375>
 
 Kordosky, J., Gese, E., Thompson, C. M., Terletzky, P., Purcell, K., & Schneiderman, J. (2021). Landscape use by fishers (Pekania pennanti): core areas differ in habitat than the entire home range. *Canadian Journal of Zoology, 99*(4), 289-297. <http://dx.doi.org/10.1139/cjz-2020-0073>
 
-NABCI. (2016). *State of North America's Birds 2016.* Ottowa, Ontario: Environment and Climate Change Canada. 
-<www.stateofthebirds.org>
+NABCI. (2016). *State of North America's Birds 2016.* Ottowa, Ontario: Environment and Climate Change Canada. \<www.stateofthebirds.org\>
 
 Pokallus, J. W., & Pauli, J. N. (2016). Predation shapes the movement of a well-defended species, the North American porcupine, even when nutritionally stressed. *Behavioural Ecology, 27*(2), 470-475. <https://doi.org/10.1093/beheco/arv176>
